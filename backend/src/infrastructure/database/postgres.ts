@@ -1,0 +1,35 @@
+import { Pool, PoolClient, QueryResult } from 'pg';
+import { env } from './env';
+
+export const pgPool = new Pool({
+  host: env.postgres.host,
+  port: env.postgres.port,
+  user: env.postgres.user,
+  password: env.postgres.password,
+  database: env.postgres.database,
+  max: env.postgres.poolMax,
+  idleTimeoutMillis: env.postgres.idleTimeoutMillis,
+});
+
+pgPool.on('error', (err: Error) => {
+  console.error('[PostgreSQL] Unexpected pool error:', err.message);
+});
+
+export async function checkPostgresConnection(): Promise<void> {
+  let client: PoolClient | null = null;
+  try {
+    client = await pgPool.connect();
+    const res: QueryResult<{ now: string }> = await client.query('SELECT NOW() as now');
+    console.log(`[PostgreSQL] Connected - server time: ${res.rows[0].now}`);
+  } catch (err) {
+    console.error('[PostgreSQL] Connection failed:', (err as Error).message);
+    throw err;
+  } finally {
+    if (client) client.release();
+  }
+}
+
+export async function closePostgresPool(): Promise<void> {
+  await pgPool.end();
+  console.log('[PostgreSQL] Pool closed');
+}

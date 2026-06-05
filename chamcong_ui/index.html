@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Chấm Công — Bộ sản phẩm</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  * { box-sizing: border-box; -webkit-font-smoothing: antialiased; }
+  :root { --green:#15B86B; --green-dark:#0E9E58; --green-deep:#0A7D46; --ink:#16241D; --sub:#5E6F66; --line:#E5EAE7; }
+  html, body { margin: 0; }
+  body {
+    font-family: "Be Vietnam Pro", system-ui, sans-serif; color: var(--ink); min-height: 100vh;
+    background: radial-gradient(1200px 700px at 50% -5%, #E4F4EC 0%, transparent 55%), #EEF2F0;
+    display: flex; align-items: center; justify-content: center; padding: 48px 24px;
+  }
+  .wrap { width: 100%; max-width: 940px; }
+  .head { text-align: center; margin-bottom: 44px; }
+  .logo { width: 64px; height: 64px; border-radius: 19px; margin: 0 auto 20px;
+    background: linear-gradient(150deg, var(--green), var(--green-deep));
+    display: flex; align-items: center; justify-content: center; box-shadow: 0 16px 32px rgba(21,184,107,.32); }
+  .head h1 { font-size: 34px; font-weight: 800; margin: 0 0 10px; letter-spacing: -.5px; }
+  .head p { font-size: 16px; color: var(--sub); margin: 0; line-height: 1.5; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+  @media (max-width: 720px){ .grid { grid-template-columns: 1fr; } }
+  .card { background: #fff; border: 1px solid var(--line); border-radius: 24px; padding: 28px; text-decoration: none; color: inherit;
+    display: flex; flex-direction: column; transition: transform .18s, box-shadow .18s; box-shadow: 0 8px 24px rgba(20,40,30,.05); }
+  .card:hover { transform: translateY(-4px); box-shadow: 0 22px 44px rgba(20,40,30,.12); }
+  .badge { display: inline-flex; align-items: center; gap: 7px; align-self: flex-start; font-size: 12.5px; font-weight: 700;
+    border-radius: 999px; padding: 6px 13px; margin-bottom: 18px; }
+  .b-emp { background: #EAF7F0; color: var(--green-deep); }
+  .b-adm { background: #EAF2FB; color: #1E6FB8; }
+  .ico { width: 52px; height: 52px; border-radius: 15px; display: flex; align-items: center; justify-content: center; margin-bottom: 16px; }
+  .card h2 { font-size: 21px; font-weight: 800; margin: 0 0 8px; }
+  .card p { font-size: 14.5px; color: var(--sub); line-height: 1.55; margin: 0 0 18px; flex: 1; }
+  .feats { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 22px; }
+  .feat { font-size: 12.5px; font-weight: 600; color: var(--sub); background: #F2F5F3; border-radius: 8px; padding: 5px 10px; }
+  .go { display: inline-flex; align-items: center; gap: 8px; align-self: flex-start; font-size: 14.5px; font-weight: 700; color: #fff;
+    background: linear-gradient(135deg, var(--green), var(--green-dark)); border-radius: 12px; padding: 11px 20px; }
+  .foot { text-align: center; margin-top: 38px; font-size: 13px; color: #98A69E; }
+  svg { display: block; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="head">
+      <div class="logo">
+        <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+      </div>
+      <h1>Hệ thống Chấm Công</h1>
+      <p>Bộ đôi sản phẩm: App nhân viên điểm danh vào/ra ca và Bảng quản trị web cho Admin.<br/>Chọn một sản phẩm để xem bản thiết kế tương tác.</p>
+    </div>
+
+    <div class="grid">
+      <a class="card" href="mobile/Cham Cong - App Nhan Vien.html">
+        <span class="badge b-emp">PHÍA NHÂN VIÊN · MOBILE</span>
+        <div class="ico" style="background:#EAF7F0;color:#15B86B">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="3"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
+        </div>
+        <h2>App Nhân viên</h2>
+        <p>Chấm vào/ra ca bằng GPS &amp; Wifi, chấm offline kèm ảnh, xem lịch sử và thống kê cá nhân. Tích hợp đúng phong cách app sẵn có.</p>
+        <div class="feats">
+          <span class="feat">Chấm vào/ra ca</span><span class="feat">GPS + Wifi</span><span class="feat">Chấm offline</span><span class="feat">Lịch sử tuần/tháng</span><span class="feat">Thống kê</span><span class="feat">Đổi công ty</span>
+        </div>
+        <span class="go">Mở App nhân viên
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><path d="m13 6 6 6-6 6"/></svg>
+        </span>
+      </a>
+
+      <a class="card" href="web/Cham Cong - Web Admin.html">
+        <span class="badge b-adm">PHÍA ADMIN · WEB</span>
+        <div class="ico" style="background:#EAF2FB;color:#2BA4E0">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg>
+        </div>
+        <h2>Web Admin</h2>
+        <p>Quản lý nhân sự, ca làm, vị trí GPS, wifi, cơ cấu tổ chức; duyệt chấm offline, xác nhận đăng nhập; thống kê và xuất Excel.</p>
+        <div class="feats">
+          <span class="feat">Dashboard</span><span class="feat">Nhân sự</span><span class="feat">Ca làm</span><span class="feat">Vị trí &amp; Wifi</span><span class="feat">Duyệt offline</span><span class="feat">Báo cáo Excel</span>
+        </div>
+        <span class="go" style="background:linear-gradient(135deg,#2BA4E0,#1E78C0)">Mở Web Admin
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><path d="m13 6 6 6-6 6"/></svg>
+        </span>
+      </a>
+    </div>
+
+    <div class="foot">Thiết kế tương tác · dữ liệu mẫu · Chấm Công v1.0</div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,118 @@
+import { Pool, QueryResult } from 'pg';
+import { IShiftRepository } from '../../../modules/attendance/domain/repositories';
+import { Shift, CreateShiftInput } from '../../../modules/attendance/domain/entities';
+
+interface ShiftRow {
+  id: number;
+  company_id: number;
+  name: string;
+  start_time: string;
+  end_time: string;
+  checkin_from: string;
+  checkin_to: string;
+  checkout_from: string;
+  checkout_to: string;
+  weekdays: number;
+  attendance_method: string;
+  late_threshold_min: number;
+  early_threshold_min: number;
+  work_credit: number;
+  deleted_at: Date | null;
+  created_at: Date;
+  updated_at: Date;
+}
+
+function rowToEntity(row: ShiftRow): Shift {
+  return {
+    id: row.id,
+    companyId: row.company_id,
+    name: row.name,
+    startTime: row.start_time,
+    endTime: row.end_time,
+    checkinFrom: row.checkin_from,
+    checkinTo: row.checkin_to,
+    checkoutFrom: row.checkout_from,
+    checkoutTo: row.checkout_to,
+    weekdays: row.weekdays,
+    attendanceMethod: row.attendance_method as Shift['attendanceMethod'],
+    lateThresholdMin: row.late_threshold_min,
+    earlyThresholdMin: row.early_threshold_min,
+    workCredit: row.work_credit,
+    deletedAt: row.deleted_at,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+export class PostgresShiftRepository implements IShiftRepository {
+  constructor(private readonly pool: Pool) {}
+
+  async findById(id: number): Promise<Shift | null> {
+    const result: QueryResult<ShiftRow> = await this.pool.query(
+      'SELECT * FROM shifts WHERE id = $1 AND deleted_at IS NULL',
+      [id],
+    );
+    return result.rows.length ? rowToEntity(result.rows[0]) : null;
+  }
+
+  async findByCompanyId(companyId: number): Promise<Shift[]> {
+    const result: QueryResult<ShiftRow> = await this.pool.query(
+      'SELECT * FROM shifts WHERE company_id = $1 AND deleted_at IS NULL ORDER BY name',
+      [companyId],
+    );
+    return result.rows.map(rowToEntity);
+  }
+
+  async create(input: CreateShiftInput): Promise<Shift> {
+    const result: QueryResult<ShiftRow> = await this.pool.query(
+      `INSERT INTO shifts (company_id, name, start_time, end_time, checkin_from, checkin_to,
+        checkout_from, checkout_to, weekdays, attendance_method, late_threshold_min,
+        early_threshold_min, work_credit)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+       RETURNING *`,
+      [input.companyId, input.name, input.startTime, input.endTime,
+       input.checkinFrom, input.checkinTo, input.checkoutFrom, input.checkoutTo,
+       input.weekdays, input.attendanceMethod,
+       input.lateThresholdMin ?? 0, input.earlyThresholdMin ?? 0,
+       input.workCredit ?? 1.0],
+    );
+    return rowToEntity(result.rows[0]);
+  }
+
+  async update(id: number, input: Partial<CreateShiftInput>): Promise<Shift> {
+    const fields: string[] = [];
+    const values: unknown[] = [];
+    let paramIndex = 1;
+
+    const map: [string | undefined, string][] = [
+      [input.name, 'name'], [input.startTime, 'start_time'], [input.endTime, 'end_time'],
+      [input.checkinFrom, 'checkin_from'], [input.checkinTo, 'checkin_to'],
+      [input.checkoutFrom, 'checkout_from'], [input.checkoutTo, 'checkout_to'],
+      [input.attendanceMethod, 'attendance_method'],
+    ];
+
+    for (const [val, col] of map) {
+      if (val !== undefined) { fields.push(`${col} = $${paramIndex++}`); values.push(val); }
+    }
+    if (input.weekdays !== undefined) { fields.push(`weekdays = $${paramIndex++}`); values.push(input.weekdays); }
+    if (input.lateThresholdMin !== undefined) { fields.push(`late_threshold_min = $${paramIndex++}`); values.push(input.lateThresholdMin); }
+    if (input.earlyThresholdMin !== undefined) { fields.push(`early_threshold_min = $${paramIndex++}`); values.push(input.earlyThresholdMin); }
+    if (input.workCredit !== undefined) { fields.push(`work_credit = $${paramIndex++}`); values.push(input.workCredit); }
+
+    if (fields.length === 0) return this.findById(id) as Promise<Shift>;
+
+    values.push(id);
+    const result: QueryResult<ShiftRow> = await this.pool.query(
+      `UPDATE shifts SET ${fields.join(', ')} WHERE id = $${paramIndex} AND deleted_at IS NULL RETURNING *`,
+      values,
+    );
+    return rowToEntity(result.rows[0]);
+  }
+
+  async softDelete(id: number): Promise<void> {
+    await this.pool.query(
+      'UPDATE shifts SET deleted_at = NOW() WHERE id = $1 AND deleted_at IS NULL',
+      [id],
+    );
+  }
+}

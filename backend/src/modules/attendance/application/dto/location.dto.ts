@@ -1,0 +1,46 @@
+import { Location } from '../../domain/entities';
+
+export interface LocationDto {
+  id: number;
+  companyId: number;
+  branchId: number;
+  name: string;
+  address: string | null;
+  lat: number;
+  lng: number;
+  radiusM: number;
+  createdAt: string;
+}
+
+export function locationToDto(entity: Location): LocationDto {
+  return {
+    id: entity.id,
+    companyId: entity.companyId,
+    branchId: entity.branchId,
+    name: entity.name,
+    address: entity.address,
+    lat: entity.lat,
+    lng: entity.lng,
+    radiusM: entity.radiusM,
+    createdAt: entity.createdAt.toISOString(),
+  };
+}
+
+export interface CreateLocationDto {
+  companyId: number;
+  branchId: number;
+  name: string;
+  address?: string;
+  lat: number;
+  lng: number;
+  radiusM?: number;
+}
+
+export interface UpdateLocationDto {
+  name?: string;
+  address?: string;
+  lat?: number;
+  lng?: number;
+  radiusM?: number;
+  branchId?: number;
+}
