@@ -27,14 +27,18 @@ export class DeviceController {
 
   /** POST /api/devices/register - Đăng ký thiết bị mới (upsert) */
   register = asyncHandler(async (req: Request, res: Response) => {
-    const result = await this.deviceUsecase.register(req.body);
+    const result = await this.deviceUsecase.register({
+      ...req.body,
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'] as string | undefined
+    });
     res.status(201).json(created('Đăng ký thiết bị thành công', result));
   });
 
   /** POST /api/devices/update-status - Duyệt/từ chối/thu hồi thiết bị */
   updateStatus = asyncHandler(async (req: Request, res: Response) => {
-    const { id, status } = req.body;
-    await this.deviceUsecase.updateStatus(id, { status });
+    const { id, status, reviewedBy, rejectionReason } = req.body;
+    await this.deviceUsecase.updateStatus(id, { status, reviewedBy, rejectionReason });
     res.json(ok(null, 'Cập nhật trạng thái thiết bị thành công'));
   });
 }

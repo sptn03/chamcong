@@ -13,7 +13,7 @@ export class ShiftAssignmentController {
   getAll = asyncHandler(async (req: Request, res: Response) => {
     const id = req.query.id ? parseInt(req.query.id as string, 10) : undefined;
     const shiftId = req.query.shiftId ? parseInt(req.query.shiftId as string, 10) : undefined;
-    const employeeId = req.query.employeeId ? parseInt(req.query.employeeId as string, 10) : undefined;
+    const employeeId = req.query.employeeId ? parseInt(req.query.employeeId as string, 10) : (req.activeEmployeeId || undefined);
     const departmentId = req.query.departmentId ? parseInt(req.query.departmentId as string, 10) : undefined;
     const branchId = req.query.branchId ? parseInt(req.query.branchId as string, 10) : undefined;
     const date = req.query.date as string | undefined;

@@ -1,0 +1,1154 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tài liệu Luồng API dành cho Mobile App - Chấm Công</title>
+  <!-- Google Fonts: Inter & Outfit -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --bg-dark: #0b0f19;
+      --bg-card: #151c2e;
+      --bg-card-hover: #1e263f;
+      --border-color: #263352;
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      
+      --color-primary: #6366f1; /* Indigo */
+      --color-primary-glow: rgba(99, 102, 241, 0.15);
+      --color-secondary: #a855f7; /* Purple */
+      --color-success: #10b981; /* Emerald */
+      --color-warning: #f59e0b; /* Amber */
+      --color-danger: #f43f5e; /* Rose */
+      --color-info: #06b6d4; /* Cyan */
+      
+      --font-outfit: 'Outfit', sans-serif;
+      --font-inter: 'Inter', sans-serif;
+      
+      --transition-speed: 0.3s;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-primary);
+      font-family: var(--font-inter);
+      overflow-x: hidden;
+      line-height: 1.6;
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: var(--bg-dark);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: var(--border-color);
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--color-primary);
+    }
+
+    header {
+      padding: 2rem;
+      background: rgba(11, 15, 25, 0.8);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-color);
+      text-align: center;
+    }
+
+    header h1 {
+      font-family: var(--font-outfit);
+      font-size: 2rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, #fff, #6366f1, #a855f7);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 0.5rem;
+    }
+
+    header p {
+      color: var(--text-secondary);
+      font-size: 1rem;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 2rem auto;
+      padding: 0 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+    }
+
+    /* Interactive Stepper Map (Lifecycle) */
+    .lifecycle-stepper {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 2rem;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }
+
+    .section-title {
+      font-family: var(--font-outfit);
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .steps-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 15px;
+      position: relative;
+    }
+
+    /* Step connector line */
+    .steps-container::before {
+      content: '';
+      position: absolute;
+      top: 25px;
+      left: 50px;
+      right: 50px;
+      height: 2px;
+      background: var(--border-color);
+      z-index: 1;
+    }
+
+    .step-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      flex: 1;
+      text-align: center;
+      position: relative;
+      z-index: 2;
+      cursor: pointer;
+    }
+
+    .step-circle {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background: var(--bg-dark);
+      border: 2px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-outfit);
+      font-weight: bold;
+      font-size: 1.15rem;
+      color: var(--text-muted);
+      transition: all var(--transition-speed);
+    }
+
+    .step-item:hover .step-circle {
+      border-color: var(--text-primary);
+      color: var(--text-primary);
+      transform: scale(1.05);
+      box-shadow: 0 0 10px rgba(255,255,255,0.1);
+    }
+
+    .step-item.active .step-circle {
+      background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+      border-color: transparent;
+      color: #fff;
+      box-shadow: 0 0 15px rgba(99, 102, 241, 0.4);
+    }
+
+    .step-title {
+      font-family: var(--font-outfit);
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-top: 12px;
+      margin-bottom: 4px;
+      transition: color var(--transition-speed);
+    }
+
+    .step-item.active .step-title {
+      color: #fff;
+    }
+
+    .step-desc {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      max-width: 160px;
+    }
+
+    /* Main Area Split: Left Sidebar (Step API Navigator) - Right Area (Details) */
+    .flow-content {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 2rem;
+      align-items: start;
+    }
+
+    .api-sidebar {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .api-sidebar-header {
+      font-family: var(--font-outfit);
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-secondary);
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 8px;
+    }
+
+    .api-nav-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .api-nav-item {
+      padding: 0.75rem 1rem;
+      background: rgba(11, 15, 25, 0.4);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all var(--transition-speed);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .api-nav-item:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--text-muted);
+    }
+
+    .api-nav-item.active {
+      background: rgba(99, 102, 241, 0.08);
+      border-color: var(--color-primary);
+    }
+
+    .api-method-badge {
+      font-family: var(--font-outfit);
+      font-size: 0.65rem;
+      font-weight: 700;
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+      width: fit-content;
+      text-transform: uppercase;
+    }
+
+    .method-post { background: rgba(16, 185, 129, 0.15); color: var(--color-success); border: 1px solid rgba(16, 185, 129, 0.3); }
+    .method-get { background: rgba(6, 182, 212, 0.15); color: var(--color-info); border: 1px solid rgba(6, 182, 212, 0.3); }
+
+    .api-nav-path {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 0.75rem;
+      font-weight: bold;
+      color: var(--text-primary);
+    }
+
+    .api-nav-title {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+    }
+
+    /* Detail View Styles */
+    .api-detail-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 2rem;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }
+
+    .api-detail-header {
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 1.25rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .api-detail-route {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+
+    .api-detail-route h2 {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 1.4rem;
+      font-weight: bold;
+    }
+
+    .api-detail-title {
+      font-family: var(--font-outfit);
+      font-size: 1.15rem;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .api-detail-desc {
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+      margin-top: 4px;
+    }
+
+    .detail-block {
+      margin-bottom: 1.5rem;
+    }
+
+    .detail-block-title {
+      font-family: var(--font-outfit);
+      font-size: 0.9rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .detail-block-desc {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    /* Code Block Styles */
+    pre {
+      background: #090d16;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 1rem;
+      overflow-x: auto;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 0.8rem;
+      color: #38bdf8;
+    }
+
+    code {
+      font-family: 'Courier New', Courier, monospace;
+    }
+
+    /* Key/Value parameters list */
+    .params-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8rem;
+      margin-top: 8px;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    .params-table th {
+      background: rgba(11, 15, 25, 0.6);
+      padding: 0.6rem 0.8rem;
+      border-bottom: 1px solid var(--border-color);
+      color: var(--text-secondary);
+      font-weight: 600;
+    }
+
+    .params-table td {
+      padding: 0.6rem 0.8rem;
+      border-bottom: 1px solid var(--border-color);
+      color: var(--text-primary);
+    }
+
+    .params-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .param-name {
+      font-weight: bold;
+      color: #fff;
+    }
+
+    .param-type {
+      color: var(--color-info);
+      font-weight: 500;
+    }
+
+    .param-req {
+      color: var(--color-danger);
+      font-weight: bold;
+    }
+    
+    .param-opt {
+      color: var(--text-muted);
+    }
+
+    @media (max-width: 900px) {
+      .steps-container {
+        flex-direction: column;
+        gap: 20px;
+      }
+      .steps-container::before {
+        display: none;
+      }
+      .step-desc {
+        max-width: 100%;
+      }
+      .flow-content {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Tài liệu Luồng API - Chấm Công Mobile App</h1>
+    <p>Quy chuẩn tích hợp đầu cuối giữa Ứng dụng di động (iOS & Android) và Máy chủ</p>
+  </header>
+
+  <div class="container">
+    
+    <!-- Step Lifecycle Stepper -->
+    <div class="lifecycle-stepper">
+      <div class="section-title">
+        <svg style="width:20px;height:20px" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
+        </svg>
+        Luồng đời sống ứng dụng di động (Bấm chọn bước để lọc nhanh danh sách API bên dưới)
+      </div>
+      
+      <div class="steps-container">
+        <!-- Step 1 -->
+        <div class="step-item active" id="step-btn-1" onclick="switchStep(1)">
+          <div class="step-circle">1</div>
+          <span class="step-title">Khởi động & Check</span>
+          <span class="step-desc">Kiểm tra kết nối và trạng thái Token lưu cục bộ</span>
+        </div>
+        
+        <!-- Step 2 -->
+        <div class="step-item" id="step-btn-2" onclick="switchStep(2)">
+          <div class="step-circle">2</div>
+          <span class="step-title">Xác thực & Thiết bị</span>
+          <span class="step-desc">Đăng nhập tài khoản & Đăng ký thiết bị chấm công</span>
+        </div>
+        
+        <!-- Step 3 -->
+        <div class="step-item" id="step-btn-3" onclick="switchStep(3)">
+          <div class="step-circle">3</div>
+          <span class="step-title">Đồng bộ Cấu hình</span>
+          <span class="step-desc">Tải dữ liệu ca làm, vị trí GPS và Wifi chi nhánh</span>
+        </div>
+        
+        <!-- Step 4 -->
+        <div class="step-item" id="step-btn-4" onclick="switchStep(4)">
+          <div class="step-circle">4</div>
+          <span class="step-title">Thao tác Chấm công</span>
+          <span class="step-desc">Thực hiện bấm nút Check-in / Check-out</span>
+        </div>
+        
+        <!-- Step 5 -->
+        <div class="step-item" id="step-btn-5" onclick="switchStep(5)">
+          <div class="step-circle">5</div>
+          <span class="step-title">Cá nhân & Tiện ích</span>
+          <span class="step-desc">Đăng ký đơn xin nghỉ phép, tra cứu lịch sử công</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Flow Content Area -->
+    <div class="flow-content">
+      
+      <!-- Left Sidebar (API Navigation) -->
+      <div class="api-sidebar">
+        <div class="api-sidebar-header" id="sidebar-step-title">Bước 1: Khởi động & Check</div>
+        <div class="api-nav-list" id="apiNavList">
+          <!-- Dynamically populated -->
+        </div>
+      </div>
+
+      <!-- Right Detail View -->
+      <div class="api-detail-card" id="apiDetailCard">
+        <!-- Dynamically populated -->
+      </div>
+
+    </div>
+
+  </div>
+
+  <script>
+    // Step definitions and the API list mapped to each step
+    const lifecycleSteps = {
+      1: {
+        title: "Bước 1: Khởi động & Kiểm tra (App Launch)",
+        apis: ["health_check", "get_unread_notifications"]
+      },
+      2: {
+        title: "Bước 2: Xác thực & Đăng ký Thiết bị (Auth & Device)",
+        apis: ["login", "login_hunonic", "switch_company", "register_device", "logout"]
+      },
+      3: {
+        title: "Bước 3: Đồng bộ Cấu hình (Sync Config)",
+        apis: ["get_memberships", "get_active_shift", "get_locations", "get_wifis"]
+      },
+      4: {
+        title: "Bước 4: Thực hiện Chấm công (Attendance Punch)",
+        apis: ["checkin", "checkout"]
+      },
+      5: {
+        title: "Bước 5: Tiện ích & Nghỉ phép (History & Leave)",
+        apis: ["get_history", "create_leave", "get_leaves", "get_holidays"]
+      }
+    };
+
+    // Full detailed API database
+    const apiDatabase = {
+      health_check: {
+        name: "health_check",
+        method: "GET",
+        path: "/health",
+        title: "Kiểm tra kết nối Server (Health Check)",
+        desc: "Được gọi ngay khi mở ứng dụng. Dùng để kiểm tra máy chủ có đang hoạt động tốt hay không để đưa ra cảnh báo ngoại tuyến kịp thời.",
+        authRequired: false,
+        params: [],
+        requestBody: null,
+        responseSample: {
+          success: true,
+          message: "Server is running",
+          timestamp: "2026-06-08T01:48:00.000Z"
+        }
+      },
+      get_unread_notifications: {
+        name: "get_unread_notifications",
+        method: "GET",
+        path: "/api/notifications?unread=1",
+        title: "Lấy số thông báo chưa đọc",
+        desc: "Được gọi ở chế độ nền khi khởi động ứng dụng thành công. Dùng để hiển thị huy hiệu thông báo (Badge) trên màn hình chính. Token được gửi qua Authorization Header.",
+        authRequired: true,
+        params: [
+          { name: "unread", type: "number", req: true, desc: "Nhập giá trị 1 để chỉ lấy danh sách thông báo chưa đọc." }
+        ],
+        requestBody: null,
+        responseSample: {
+          success: true,
+          data: [
+            {
+              id: 12,
+              companyId: 1,
+              userId: 5,
+              type: "device_approval",
+              title: "Thiết bị được duyệt",
+              body: "Thiết bị iPhone 15 của bạn đã được duyệt làm máy chấm công chính thức.",
+              data_json: { route: "/devices" },
+              read_at: null,
+              createdAt: "2026-06-07T15:30:00.000Z"
+            }
+          ]
+        }
+      },
+      login: {
+        name: "login",
+        method: "POST",
+        path: "/api/auth/login",
+        title: "Đăng nhập tài khoản bằng Số điện thoại & Mật khẩu",
+        desc: "Được gọi khi người dùng nhập thông tin đăng nhập trên màn hình Login. Gửi kèm thông tin thiết bị thô lên để lưu vết đăng ký phiên.",
+        authRequired: false,
+        params: [],
+        requestBody: {
+          phone: "0987654321",
+          password: "matkhaucuaban",
+          deviceUid: "uuid-thiet-bi-app-tu-sinh",
+          deviceName: "iPhone 15 Pro Max",
+          platform: "ios",
+          osVersion: "17.4",
+          appVersion: "1.0.0"
+        },
+        responseSample: {
+          success: true,
+          data: {
+            token: "session-token-uuid-123456",
+            userId: 5,
+            deviceId: 8,
+            createdAt: "2026-06-08T01:50:00.000Z"
+          },
+          message: "Đăng nhập thành công"
+        }
+      },
+      login_hunonic: {
+        name: "login_hunonic",
+        method: "POST",
+        path: "/api/auth/hunonic-login",
+        title: "Đăng nhập liên kết tài khoản Hunonic",
+        desc: "Phương thức đăng nhập nhanh liên kết với ứng dụng nhà thông minh Hunonic. Trả về Token đăng nhập tương tự luồng login chính.",
+        authRequired: false,
+        params: [],
+        requestBody: {
+          hunonicToken: "access-token-lay-tu-sdk-hunonic",
+          phone: "0987654321",
+          deviceUid: "uuid-thiet-bi-app-tu-sinh",
+          deviceName: "iPhone 15 Pro Max",
+          platform: "ios",
+          osVersion: "17.4",
+          appVersion: "1.0.0"
+        },
+        responseSample: {
+          success: true,
+          data: {
+            token: "session-token-uuid-7891011",
+            userId: 5,
+            deviceId: 8,
+            createdAt: "2026-06-08T01:51:00.000Z"
+          },
+          message: "Đăng nhập thành công qua liên kết Hunonic"
+        }
+      },
+      switch_company: {
+        name: "switch_company",
+        method: "POST",
+        path: "/api/auth/switch-company",
+        title: "Chọn/Chuyển đổi Công ty hoạt động",
+        desc: "Thiết lập ngữ cảnh hoạt động (Active Context) cho token hiện tại. Client gọi API này sau khi lấy danh sách công ty từ `/api/memberships` hoặc khi người dùng thực hiện chuyển công ty trên giao diện app. Mọi API sau đó sẽ tự nhận diện company_id và employee_id từ token mà không cần truyền lên.",
+        authRequired: true,
+        params: [],
+        requestBody: {
+          companyId: 1
+        },
+        responseSample: {
+          success: true,
+          data: {
+            activeCompanyId: 1,
+            activeEmployeeId: 3
+          },
+          message: "Chuyển công ty hoạt động thành công"
+        }
+      },
+      register_device: {
+        name: "register_device",
+        method: "POST",
+        path: "/api/devices/register",
+        title: "Đăng ký hoặc Cập nhật Push Token Thiết bị",
+        desc: "Được gọi NGAY SAU KHI đăng nhập thành công hoặc khi Token thông báo Firebase/APNS (Push Token) của thiết bị thay đổi. API tự nhận diện user từ Token. CSDL duy trì quy tắc chỉ cho phép tối đa 1 thiết bị được duyệt tại một thời điểm.",
+        authRequired: true,
+        params: [],
+        requestBody: {
+          deviceUid: "uuid-thiet-bi-app-tu-sinh",
+          deviceName: "iPhone 15 Pro Max",
+          platform: "ios",
+          osVersion: "17.4",
+          appVersion: "1.0.0",
+          pushToken: "firebase-token-moi-duoc-cap"
+        },
+        responseSample: {
+          success: true,
+          data: {
+            id: 8,
+            userId: 5,
+            deviceUid: "uuid-thiet-bi-app-tu-sinh",
+            deviceName: "iPhone 15 Pro Max",
+            platform: "ios",
+            osVersion: "17.4",
+            appVersion: "1.0.0",
+            pushToken: "firebase-token-moi-duoc-cap",
+            status: "pending",
+            lastLoginAt: "2026-06-08T01:52:00.000Z",
+            ipAddress: "14.161.22.45",
+            userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/... HunchamcongApp/1.0.0",
+            createdAt: "2026-06-05T08:00:00.000Z"
+          },
+          message: "Đăng ký thiết bị thành công"
+        }
+      },
+      logout: {
+        name: "logout",
+        method: "POST",
+        path: "/api/auth/logout",
+        title: "Đăng xuất tài khoản",
+        desc: "Được gọi khi người dùng bấm nút 'Đăng xuất'. Server sẽ hủy giá trị Token đăng nhập (`active = false`) được gửi trong header.",
+        authRequired: true,
+        params: [],
+        requestBody: null,
+        responseSample: {
+          success: true,
+          data: null,
+          message: "Đăng xuất thành công"
+        }
+      },
+      get_memberships: {
+        name: "get_memberships",
+        method: "GET",
+        path: "/api/memberships",
+        title: "Lấy danh sách Công ty liên kết của người dùng",
+        desc: "Được gọi khi người dùng mở màn hình chính hoặc màn hình chọn công ty. API tự nhận diện user từ Token. Trả về vai trò (`admin` hoặc `employee`) và thông tin liên kết của tài khoản trong từng công ty.",
+        authRequired: true,
+        params: [],
+        requestBody: null,
+        responseSample: {
+          success: true,
+          data: [
+            {
+              id: 1,
+              userId: 5,
+              companyId: 1,
+              employeeId: 3,
+              role: "employee",
+              activeDepartmentId: 2
+            }
+          ]
+        }
+      },
+      get_active_shift: {
+        name: "get_active_shift",
+        method: "GET",
+        path: "/api/shift-assignments?date={date}",
+        title: "Tra cứu Ca làm việc hiệu lực trong ngày",
+        desc: "Được gọi khi mở màn hình Chấm công. API tự động nhận diện employee_id từ token hiện tại và ngày truy vấn (`date` định dạng `YYYY-MM-DD`). Trả về ca làm việc được cấu hình.",
+        authRequired: true,
+        params: [
+          { name: "date", type: "string (YYYY-MM-DD)", req: true, desc: "Ngày lịch cần tra cứu ca làm." }
+        ],
+        requestBody: null,
+        responseSample: {
+          success: true,
+          data: [
+            {
+              id: 15,
+              shiftId: 2,
+              scopeType: "employee",
+              companyId: 1,
+              startsOn: "2026-06-01T00:00:00.000Z",
+              endsOn: null,
+              shift: {
+                id: 2,
+                name: "Ca hành chính",
+                startTime: "08:00:00",
+                endTime: "17:00:00",
+                checkinFrom: "07:30:00",
+                checkinTo: "09:30:00",
+                checkoutFrom: "16:30:00",
+                checkoutTo: "20:00:00",
+                weekdays: 31,
+                attendanceMethod: "gps_wifi",
+                lateThresholdMin: 15,
+                earlyThresholdMin: 0
+              }
+            }
+          ]
+        }
+      },
+      get_locations: {
+        name: "get_locations",
+        method: "GET",
+        path: "/api/locations",
+        title: "Lấy danh sách Tọa độ địa lý Văn phòng",
+        desc: "Được gọi khi ca làm yêu cầu xác thực bằng GPS. API tự nhận diện company_id từ token hoạt động hiện tại để trả về danh sách tọa độ văn phòng được phép chấm công.",
+        authRequired: true,
+        params: [],
+        requestBody: null,
+        responseSample: {
+          success: true,
+          data: [
+            {
+              id: 4,
+              companyId: 1,
+              branchId: 1,
+              name: "Văn phòng Hà Nội",
+              address: "15 Tố Hữu, Nam Từ Liêm",
+              lat: 21.00224,
+              lng: 105.79812,
+              radiusM: 80
+            }
+          ]
+        }
+      },
+      get_wifis: {
+        name: "get_wifis",
+        method: "GET",
+        path: "/api/wifis",
+        title: "Lấy danh sách Wifi văn phòng được cấp phép",
+        desc: "Được gọi khi ca làm yêu cầu xác thực bằng Wifi. API tự nhận diện company_id từ token để trả về danh sách wifi được phép.",
+        authRequired: true,
+        params: [],
+        requestBody: null,
+        responseSample: {
+          success: true,
+          data: [
+            {
+              id: 2,
+              companyId: 1,
+              branchId: 1,
+              name: "Wifi Ban giám đốc",
+              ssid: "Hunonic-Office",
+              bssid: "aa:bb:cc:dd:ee:ff",
+              matchMode: "ssid_bssid"
+            }
+          ]
+        }
+      },
+      checkin: {
+        name: "checkin",
+        method: "POST",
+        path: "/api/attendance/checkin",
+        title: "Thực hiện Check-in vào ca",
+        desc: "Được gọi khi người dùng nhấn nút 'Bấm Chấm Công Vào Ca'. Hệ thống tự lấy thông tin nhân viên và công ty từ token. Gửi kèm thông tin định vị, wifi, ảnh selfie và ID thiết bị.",
+        authRequired: true,
+        params: [],
+        requestBody: {
+          shiftId: 2,
+          workDate: "2026-06-08",
+          clientTime: "2026-06-08T07:55:00.000Z",
+          lat: 21.00225,
+          lng: 105.79815,
+          accuracyM: 10.5,
+          wifiSsid: "Hunonic-Office",
+          wifiBssid: "aa:bb:cc:dd:ee:ff",
+          photoPath: "tmp/selfie_image_345.jpg",
+          note: "Hôm nay làm sớm",
+          deviceId: 8
+        },
+        responseSample: {
+          success: true,
+          data: {
+            id: 114,
+            employeeId: 3,
+            branchId: 1,
+            departmentId: 2,
+            shiftId: 2,
+            workDate: "2026-06-08",
+            checkinAt: "2026-06-08T07:55:00.000Z",
+            checkoutAt: null,
+            source: "online",
+            approvalStatus: "approved",
+            workStatus: "normal",
+            lateMin: 0,
+            earlyMin: 0,
+            actualWorkMinutes: 0,
+            workCredit: 0.0,
+            createdAt: "2026-06-08T07:55:01.000Z"
+          },
+          message: "Check-in thành công"
+        }
+      },
+      checkout: {
+        name: "checkout",
+        method: "POST",
+        path: "/api/attendance/checkout",
+        title: "Thực hiện Check-out ra ca",
+        desc: "Được gọi khi người dùng ra ca. API tự nhận diện context từ token, cập nhật bản ghi chấm công.",
+        authRequired: true,
+        params: [],
+        requestBody: {
+          attendanceRecordId: 114,
+          clientTime: "2026-06-08T17:05:00.000Z",
+          lat: 21.00224,
+          lng: 105.79811,
+          accuracyM: 8.2,
+          wifiSsid: "Hunonic-Office",
+          wifiBssid: "aa:bb:cc:dd:ee:ff",
+          photoPath: "tmp/selfie_image_checkout_345.jpg",
+          note: "Hoàn thành công việc ngày",
+          deviceId: 8
+        },
+        responseSample: {
+          success: true,
+          data: {
+            id: 114,
+            employeeId: 3,
+            branchId: 1,
+            departmentId: 2,
+            shiftId: 2,
+            workDate: "2026-06-08",
+            checkinAt: "2026-06-08T07:55:00.000Z",
+            checkoutAt: "2026-06-08T17:05:00.000Z",
+            source: "online",
+            approvalStatus: "approved",
+            workStatus: "normal",
+            lateMin: 0,
+            earlyMin: 0,
+            actualWorkMinutes: 550,
+            workCredit: 1.0,
+            createdAt: "2026-06-08T07:55:01.000Z"
+          },
+          message: "Check-out thành công"
+        }
+      },
+      get_history: {
+        name: "get_history",
+        method: "GET",
+        path: "/api/attendance?fromDate={fromDate}&toDate={toDate}",
+        title: "Xem lịch sử bảng công cá nhân",
+        desc: "Được gọi khi nhân viên mở tab 'Lịch sử'. API tự động lấy employee_id từ token để tra cứu lịch sử chấm công của chính họ.",
+        authRequired: true,
+        params: [
+          { name: "fromDate", type: "string (YYYY-MM-DD)", req: true, desc: "Ngày bắt đầu lọc." },
+          { name: "toDate", type: "string (YYYY-MM-DD)", req: true, desc: "Ngày kết thúc lọc." }
+        ],
+        requestBody: null,
+        responseSample: {
+          success: true,
+          data: [
+            {
+              id: 114,
+              employeeId: 3,
+              employeeName: "Nguyễn Văn A",
+              employeeCode: "NV005",
+              branchId: 1,
+              departmentId: 2,
+              shiftId: 2,
+              workDate: "2026-06-08",
+              checkinAt: "2026-06-08T07:55:00.000Z",
+              checkoutAt: "2026-06-08T17:05:00.000Z",
+              source: "online",
+              approvalStatus: "approved",
+              workStatus: "normal",
+              lateMin: 0,
+              earlyMin: 0,
+              actualWorkMinutes: 550,
+              workCredit: 1.0,
+              createdAt: "2026-06-08T07:55:01.000Z"
+            }
+          ],
+          pagination: {
+            page: 1,
+            limit: 20,
+            total: 1,
+            totalPages: 1
+          }
+        }
+      },
+      create_leave: {
+        name: "create_leave",
+        method: "POST",
+        path: "/api/leaves/create",
+        title: "Đăng ký đơn xin nghỉ phép (Mới)",
+        desc: "Tạo đơn xin nghỉ trên app di động. API tự động nhận diện employee_id và company_id từ token hoạt động của phiên.",
+        authRequired: true,
+        params: [],
+        requestBody: {
+          leaveType: "annual",
+          startsOn: "2026-06-15",
+          endsOn: "2026-06-16",
+          reason: "Có việc gia đình"
+        },
+        responseSample: {
+          success: true,
+          data: {
+            id: 24,
+            employeeId: 3,
+            companyId: 1,
+            leaveType: "annual",
+            startsOn: "2026-06-15",
+            endsOn: "2026-06-16",
+            reason: "Có việc gia đình",
+            status: "pending",
+            createdAt: "2026-06-08T02:00:00.000Z"
+          },
+          message: "Tạo đơn xin nghỉ phép thành công"
+        }
+      },
+      get_leaves: {
+        name: "get_leaves",
+        method: "GET",
+        path: "/api/leaves",
+        title: "Xem danh sách đơn xin nghỉ phép",
+        desc: "API tự nhận diện employee_id từ token để trả về danh sách đơn xin nghỉ phép của nhân viên đó.",
+        authRequired: true,
+        params: [],
+        requestBody: null,
+        responseSample: {
+          success: true,
+          data: [
+            {
+              id: 24,
+              employeeId: 3,
+              leaveType: "annual",
+              startsOn: "2026-06-15",
+              endsOn: "2026-06-16",
+              status: "approved",
+              approvedBy: 1,
+              approvedAt: "2026-06-08T05:00:00.000Z"
+            }
+          ]
+        }
+      },
+      get_holidays: {
+        name: "get_holidays",
+        method: "GET",
+        path: "/api/holidays",
+        title: "Lấy danh sách các ngày nghỉ lễ của công ty",
+        desc: "API tự nhận diện company_id từ token hoạt động để lấy danh sách ngày nghỉ lễ cấu hình của công ty đó.",
+        authRequired: true,
+        params: [],
+        requestBody: null,
+        responseSample: {
+          success: true,
+          data: [
+            {
+              id: 1,
+              companyId: 1,
+              name: "Ngày Quốc khánh",
+              holidayDate: "2026-09-02",
+              workCredit: 1.00
+            }
+          ]
+        }
+      }
+    };
+
+    // Keep active step state
+    let currentActiveStep = 1;
+
+    // Switch step in UI
+    function switchStep(stepNumber) {
+      currentActiveStep = stepNumber;
+      
+      // Update step buttons classes
+      document.querySelectorAll('.step-item').forEach(btn => btn.classList.remove('active'));
+      document.getElementById(`step-btn-${stepNumber}`).classList.add('active');
+      
+      // Update sidebar title
+      document.getElementById('sidebar-step-title').innerText = lifecycleSteps[stepNumber].title;
+      
+      // Populate sidebar list
+      renderSidebarApis();
+    }
+
+    // Populate Sidebar APIs based on current step
+    function renderSidebarApis() {
+      const container = document.getElementById('apiNavList');
+      container.innerHTML = '';
+      
+      const apiKeys = lifecycleSteps[currentActiveStep].apis;
+      
+      apiKeys.forEach((key, idx) => {
+        const api = apiDatabase[key];
+        if (!api) return;
+        
+        const navItem = document.createElement('div');
+        navItem.className = `api-nav-item ${idx === 0 ? 'active' : ''}`;
+        navItem.id = `nav-${api.name}`;
+        navItem.onclick = () => selectApi(api.name);
+        
+        const methodClass = api.method.toLowerCase() === 'post' ? 'method-post' : 'method-get';
+        
+        navItem.innerHTML = `
+          <span class="api-method-badge ${methodClass}">${api.method}</span>
+          <span class="api-nav-path">${api.path.split('?')[0]}</span>
+          <span class="api-nav-title">${api.title}</span>
+        `;
+        
+        container.appendChild(navItem);
+      });
+      
+      // Automatically select first API in the list
+      if (apiKeys.length > 0) {
+        selectApi(apiKeys[0]);
+      }
+    }
+
+    // Display selected API detail in card
+    function selectApi(apiName) {
+      // Update active nav item classes
+      document.querySelectorAll('.api-nav-item').forEach(item => item.classList.remove('active'));
+      const activeNav = document.getElementById(`nav-${apiName}`);
+      if (activeNav) activeNav.classList.add('active');
+      
+      const api = apiDatabase[apiName];
+      const card = document.getElementById('apiDetailCard');
+      
+      const methodClass = api.method.toLowerCase() === 'post' ? 'method-post' : 'method-get';
+      
+      // Generate parameters table if any
+      let paramsHtml = '';
+      if (api.params && api.params.length > 0) {
+        const rows = api.params.map(p => `
+          <tr>
+            <td class="param-name">${p.name}</td>
+            <td class="param-type">${p.type}</td>
+            <td class="${p.req ? 'param-req' : 'param-opt'}">${p.req ? 'Bắt buộc' : 'Tùy chọn'}</td>
+            <td>${p.desc}</td>
+          </tr>
+        `).join('');
+        
+        paramsHtml = `
+          <div class="detail-block">
+            <span class="detail-block-title">Tham số Query/URL Path</span>
+            <table class="params-table">
+              <thead>
+                <tr>
+                  <th style="width:20%">Tên tham số</th>
+                  <th style="width:20%">Kiểu dữ liệu</th>
+                  <th style="width:15%">Bắt buộc</th>
+                  <th style="width:45%">Mô tả</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${rows}
+              </tbody>
+            </table>
+          </div>
+        `;
+      }
+      
+      // Generate request body block if POST
+      let requestBodyHtml = '';
+      if (api.requestBody) {
+        requestBodyHtml = `
+          <div class="detail-block">
+            <span class="detail-block-title">Tham số Body (JSON Payload)</span>
+            <pre><code>${JSON.stringify(api.requestBody, null, 2)}</code></pre>
+          </div>
+        `;
+      }
+      
+      card.innerHTML = `
+        <div class="api-detail-header">
+          <div class="api-detail-route">
+            <span class="api-method-badge ${methodClass}" style="font-size:0.85rem; padding:0.25rem 0.6rem;">${api.method}</span>
+            <h2>${api.path}</h2>
+          </div>
+          <span class="api-detail-title">${api.title}</span>
+          <p class="api-detail-desc">${api.desc}</p>
+        </div>
+
+        <!-- Parameters Block -->
+        ${paramsHtml}
+
+        <!-- Request Body Block -->
+        ${requestBodyHtml}
+
+        <!-- Response Block -->
+        <div class="detail-block">
+          <span class="detail-block-title">Dữ liệu máy chủ trả về (Response JSON - 200 OK)</span>
+          <pre><code>${JSON.stringify(api.responseSample, null, 2)}</code></pre>
+        </div>
+      `;
+    }
+
+    // Init
+    window.onload = () => {
+      switchStep(1);
+    };
+  </script>
+</body>
+</html>

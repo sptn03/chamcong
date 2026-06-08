@@ -12,7 +12,7 @@ export class NotificationController {
   /** GET /api/notifications?[id=][&userId=][&unread=1][&limit=&offset=] */
   getAll = asyncHandler(async (req: Request, res: Response) => {
     const id = req.query.id ? parseInt(req.query.id as string, 10) : undefined;
-    const userId = req.query.userId ? parseInt(req.query.userId as string, 10) : undefined;
+    const userId = req.query.userId ? parseInt(req.query.userId as string, 10) : req.userId;
     const unread = req.query.unread as string | undefined;
     const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : undefined;
     const offset = req.query.offset ? parseInt(req.query.offset as string, 10) : undefined;
@@ -39,7 +39,8 @@ export class NotificationController {
 
   /** POST /api/notifications/read-all - Đánh dấu tất cả đã đọc */
   markAllRead = asyncHandler(async (req: Request, res: Response) => {
-    await this.notifUsecase.markAllAsRead(req.body.userId);
+    const userId = req.body.userId ? parseInt(req.body.userId as string, 10) : req.userId!;
+    await this.notifUsecase.markAllAsRead(userId);
     res.json(ok(null, 'Đã đánh dấu tất cả đã đọc'));
   });
 }

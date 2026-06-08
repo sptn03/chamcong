@@ -1,0 +1,1521 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tài liệu Thiết kế Cơ sở Dữ liệu - Hệ thống Chấm công</title>
+  <!-- Google Fonts: Inter & Outfit -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <style>
+    /* Premium CSS Variables for Glassmorphism & Cyberpunk-inspired Dark Theme */
+    :root {
+      --bg-dark: #0b0f19;
+      --bg-card: #151c2e;
+      --bg-card-hover: #1e263f;
+      --border-color: #263352;
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      
+      --color-primary: #6366f1; /* Indigo */
+      --color-primary-glow: rgba(99, 102, 241, 0.15);
+      --color-secondary: #a855f7; /* Purple */
+      --color-success: #10b981; /* Emerald */
+      --color-warning: #f59e0b; /* Amber */
+      --color-danger: #f43f5e; /* Rose */
+      --color-info: #06b6d4; /* Cyan */
+      
+      --font-outfit: 'Outfit', sans-serif;
+      --font-inter: 'Inter', sans-serif;
+      
+      --transition-speed: 0.3s;
+    }
+
+    /* Base Styles & Reset */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-primary);
+      font-family: var(--font-inter);
+      overflow-x: hidden;
+      line-height: 1.6;
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: var(--bg-dark);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: var(--border-color);
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--color-primary);
+    }
+
+    /* Layout structure */
+    .app-container {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      width: 100vw;
+    }
+
+    /* Sleek Header Bar */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 2rem;
+      background: rgba(11, 15, 25, 0.8);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-color);
+      z-index: 100;
+    }
+
+    .header-logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo-icon {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-outfit);
+      font-weight: 800;
+      font-size: 1.25rem;
+      color: #fff;
+      box-shadow: 0 0 15px rgba(99, 102, 241, 0.4);
+    }
+
+    .header-title h1 {
+      font-family: var(--font-outfit);
+      font-size: 1.5rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #fff, #94a3b8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .header-title p {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+
+    .db-badge {
+      padding: 0.35rem 0.85rem;
+      background: rgba(6, 182, 212, 0.1);
+      border: 1px solid rgba(6, 182, 212, 0.3);
+      color: var(--color-info);
+      border-radius: 9999px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Main Dashboard Layout */
+    .main-layout {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Left Sidebar: Tables List */
+    .sidebar {
+      width: 380px;
+      background: rgba(15, 22, 41, 0.5);
+      border-right: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    .search-container {
+      padding: 1.25rem;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .search-input-wrapper {
+      position: relative;
+      width: 100%;
+    }
+
+    .search-input {
+      width: 100%;
+      background: rgba(11, 15, 25, 0.8);
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
+      padding: 0.75rem 1rem 0.75rem 2.5rem;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-family: var(--font-inter);
+      transition: all var(--transition-speed);
+    }
+
+    .search-input:focus {
+      outline: none;
+      border-color: var(--color-primary);
+      box-shadow: 0 0 10px rgba(99, 102, 241, 0.25);
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      width: 16px;
+      height: 16px;
+      pointer-events: none;
+    }
+
+    /* Filter Badges */
+    .filter-group {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+    }
+
+    .filter-badge {
+      flex-shrink: 0;
+      padding: 0.25rem 0.65rem;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all var(--transition-speed);
+      font-weight: 500;
+    }
+
+    .filter-badge:hover {
+      border-color: var(--text-secondary);
+      color: var(--text-primary);
+    }
+
+    .filter-badge.active {
+      background: var(--color-primary);
+      border-color: var(--color-primary);
+      color: #fff;
+    }
+
+    /* Table cards list view */
+    .table-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .table-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 1rem;
+      cursor: pointer;
+      transition: all var(--transition-speed);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .table-card::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 4px;
+      background: transparent;
+      transition: all var(--transition-speed);
+    }
+
+    .table-card:hover {
+      background: var(--bg-card-hover);
+      transform: translateY(-2px);
+      border-color: rgba(99, 102, 241, 0.3);
+    }
+
+    .table-card.active {
+      background: rgba(99, 102, 241, 0.08);
+      border-color: var(--color-primary);
+    }
+
+    .table-card.active::before {
+      background: var(--color-primary);
+    }
+
+    .table-header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+
+    .table-name {
+      font-family: var(--font-outfit);
+      font-weight: 600;
+      font-size: 0.95rem;
+      color: var(--text-primary);
+    }
+
+    .table-module-tag {
+      font-size: 0.65rem;
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* Module tag colors */
+    .tag-auth { background: rgba(168, 85, 247, 0.15); color: var(--color-secondary); border: 1px solid rgba(168, 85, 247, 0.3); }
+    .tag-org { background: rgba(99, 102, 241, 0.15); color: var(--color-primary); border: 1px solid rgba(99, 102, 241, 0.3); }
+    .tag-shift { background: rgba(245, 158, 11, 0.15); color: var(--color-warning); border: 1px solid rgba(245, 158, 11, 0.3); }
+    .tag-attendance { background: rgba(16, 185, 129, 0.15); color: var(--color-success); border: 1px solid rgba(16, 185, 129, 0.3); }
+    .tag-sys { background: rgba(148, 163, 184, 0.15); color: var(--text-secondary); border: 1px solid rgba(148, 163, 184, 0.3); }
+
+    .table-desc-short {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    /* Center/Right Panel: Detail & Interactive Map */
+    .content-area {
+      flex: 1;
+      overflow-y: auto;
+      padding: 2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+      background: var(--bg-dark);
+    }
+
+    /* Summary Dashboard Cards at Top of Content */
+    .summary-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1.25rem;
+    }
+
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .stat-card-title {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-muted);
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .stat-card-value {
+      font-family: var(--font-outfit);
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .stat-card-glow {
+      position: absolute;
+      right: -20px;
+      bottom: -20px;
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: var(--color-primary);
+      filter: blur(40px);
+      opacity: 0.15;
+    }
+
+    /* Main Table Detail Viewer */
+    .detail-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 2rem;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      position: relative;
+    }
+
+    .detail-header {
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 1.5rem;
+      margin-bottom: 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    .detail-title-wrapper h2 {
+      font-family: var(--font-outfit);
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .detail-desc {
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+      margin-top: 6px;
+    }
+
+    /* Interactive Relation Map Section */
+    .relation-map-container {
+      margin-bottom: 2rem;
+      background: rgba(11, 15, 25, 0.6);
+      border: 1px dashed var(--border-color);
+      border-radius: 8px;
+      padding: 1.5rem;
+    }
+
+    .relation-map-title {
+      font-family: var(--font-outfit);
+      font-size: 0.9rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-secondary);
+      margin-bottom: 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* CSS/HTML Node-based relationship diagram style */
+    .relation-flow {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 20px;
+      position: relative;
+      min-height: 120px;
+      padding: 0 1rem;
+    }
+
+    .flow-column {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      flex: 1;
+      max-width: 280px;
+    }
+
+    .flow-node {
+      background: var(--bg-card);
+      border: 1.5px solid var(--border-color);
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      text-align: center;
+      font-family: var(--font-outfit);
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all var(--transition-speed);
+      position: relative;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.15);
+    }
+
+    .flow-node:hover {
+      border-color: var(--text-primary);
+      color: var(--text-primary);
+      transform: translateY(-2px);
+    }
+
+    .flow-node.parent {
+      border-color: rgba(245, 158, 11, 0.4);
+      background: rgba(245, 158, 11, 0.05);
+    }
+
+    .flow-node.parent:hover {
+      border-color: var(--color-warning);
+      box-shadow: 0 0 10px rgba(245, 158, 11, 0.2);
+    }
+
+    .flow-node.active-center {
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(168, 85, 247, 0.15));
+      border-color: var(--color-primary);
+      color: #fff;
+      font-size: 1rem;
+      padding: 1rem;
+      box-shadow: 0 0 15px rgba(99, 102, 241, 0.3);
+    }
+
+    .flow-node.child {
+      border-color: rgba(6, 182, 212, 0.4);
+      background: rgba(6, 182, 212, 0.05);
+    }
+
+    .flow-node.child:hover {
+      border-color: var(--color-info);
+      box-shadow: 0 0 10px rgba(6, 182, 212, 0.2);
+    }
+
+    .flow-connector {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--border-color);
+      font-size: 1.5rem;
+      font-weight: bold;
+      flex: 0 0 40px;
+    }
+
+    .flow-connector.active {
+      color: var(--color-primary);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0% { opacity: 0.4; }
+      50% { opacity: 1; }
+      100% { opacity: 0.4; }
+    }
+
+    .node-empty {
+      border: 1px dashed var(--border-color);
+      background: transparent;
+      color: var(--text-muted);
+      cursor: default;
+      font-weight: normal;
+      box-shadow: none;
+    }
+    .node-empty:hover {
+      transform: none;
+      border-color: var(--border-color);
+      color: var(--text-muted);
+    }
+
+    /* Columns Structure Table Styles */
+    .detail-section-title {
+      font-family: var(--font-outfit);
+      font-size: 1.15rem;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .columns-table-wrapper {
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      overflow: hidden;
+      margin-bottom: 2rem;
+      background: rgba(11, 15, 25, 0.4);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.85rem;
+    }
+
+    th {
+      background: rgba(15, 22, 41, 0.8);
+      font-family: var(--font-outfit);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-secondary);
+      padding: 0.85rem 1rem;
+      border-bottom: 1px solid var(--border-color);
+      font-size: 0.75rem;
+    }
+
+    td {
+      padding: 0.85rem 1rem;
+      border-bottom: 1px solid var(--border-color);
+      vertical-align: top;
+      color: var(--text-primary);
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    /* Code & Badge Styles in Table */
+    .col-name {
+      font-family: 'Courier New', Courier, monospace;
+      font-weight: bold;
+      color: var(--text-primary);
+    }
+
+    .col-type {
+      font-family: 'Courier New', Courier, monospace;
+      color: var(--color-info);
+      font-weight: 600;
+    }
+
+    .key-badge {
+      display: inline-block;
+      padding: 0.1rem 0.35rem;
+      border-radius: 4px;
+      font-size: 0.65rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      margin-right: 4px;
+    }
+
+    .key-pk {
+      background: rgba(245, 158, 11, 0.15);
+      color: var(--color-warning);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+
+    .key-fk {
+      background: rgba(99, 102, 241, 0.15);
+      color: var(--color-primary);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+    }
+
+    .key-uq {
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--color-success);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .null-badge {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    /* Index list section */
+    .index-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .index-item {
+      background: rgba(11, 15, 25, 0.4);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 0.75rem 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .index-info {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .index-name {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 0.85rem;
+      font-weight: bold;
+      color: #fff;
+    }
+
+    .index-definition {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+    }
+
+    .index-type-badge {
+      font-size: 0.65rem;
+      padding: 0.15rem 0.4rem;
+      background: rgba(6, 182, 212, 0.15);
+      color: var(--color-info);
+      border: 1px solid rgba(6, 182, 212, 0.3);
+      border-radius: 4px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    /* Empty state display */
+    .empty-detail-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 5rem 2rem;
+      color: var(--text-muted);
+      text-align: center;
+      border: 2px dashed var(--border-color);
+      border-radius: 12px;
+      background: rgba(15, 22, 41, 0.2);
+    }
+
+    .empty-icon {
+      font-size: 3rem;
+      margin-bottom: 1.5rem;
+      opacity: 0.5;
+    }
+
+    .empty-detail-state h3 {
+      font-family: var(--font-outfit);
+      font-size: 1.25rem;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 1024px) {
+      .main-layout {
+        flex-direction: column;
+      }
+      .sidebar {
+        width: 100%;
+        height: 350px;
+        border-right: none;
+        border-bottom: 1px solid var(--border-color);
+      }
+      .content-area {
+        height: auto;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-container">
+    
+    <!-- Header -->
+    <header>
+      <div class="header-logo">
+        <div class="logo-icon">CC</div>
+        <div class="header-title">
+          <h1>Tài liệu Cơ sở Dữ liệu Chấm công</h1>
+          <p>Thiết kế cấu trúc CSDL chi tiết cho hệ thống chamcong</p>
+        </div>
+      </div>
+      
+      <div class="db-badge">
+        <svg style="width:16px;height:16px" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12,3C7.58,3 4,4.79 4,7C4,9.21 7.58,11 12,11C16.42,11 20,9.21 20,7C20,4.79 16.42,3 12,3M4,9V12C4,14.21 7.58,16 12,16C16.42,16 20,14.21 20,12V9C20,11.21 16.42,13 12,13C7.58,13 4,11.21 4,9M4,14V17C4,19.21 7.58,21 12,21C16.42,21 20,19.21 20,17V14C20,16.21 16.42,18 12,18C7.58,18 4,16.21 4,14Z" />
+        </svg>
+        <span>PostgreSQL 15+ & PostGIS</span>
+      </div>
+    </header>
+
+    <!-- Main Layout -->
+    <div class="main-layout">
+      
+      <!-- Sidebar Tables List -->
+      <div class="sidebar">
+        
+        <div class="search-container">
+          <div class="search-input-wrapper">
+            <!-- Search icon SVG -->
+            <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+            </svg>
+            <input type="text" class="search-input" id="searchBox" placeholder="Tìm kiếm bảng hoặc mô tả..." oninput="handleSearch()">
+          </div>
+          
+          <div class="filter-group">
+            <span class="filter-badge active" id="btn-all" onclick="filterModule('all')">Tất cả</span>
+            <span class="filter-badge" id="btn-auth" onclick="filterModule('auth')">Tài khoản</span>
+            <span class="filter-badge" id="btn-org" onclick="filterModule('org')">Tổ chức</span>
+            <span class="filter-badge" id="btn-shift" onclick="filterModule('shift')">Ca kíp</span>
+            <span class="filter-badge" id="btn-attendance" onclick="filterModule('attendance')">Công</span>
+            <span class="filter-badge" id="btn-sys" onclick="filterModule('sys')">Hệ thống</span>
+          </div>
+        </div>
+        
+        <div class="table-list" id="tableListContainer">
+          <!-- Dynamically populated -->
+        </div>
+        
+      </div>
+
+      <!-- Content Details Area -->
+      <div class="content-area">
+        
+        <!-- Dashboard Statistics -->
+        <div class="summary-stats">
+          <div class="stat-card">
+            <span class="stat-card-title">Tổng số bảng</span>
+            <span class="stat-card-value" id="stat-tables">18</span>
+            <div class="stat-card-glow"></div>
+          </div>
+          <div class="stat-card">
+            <span class="stat-card-title">Tổng số cột</span>
+            <span class="stat-card-value">167</span>
+            <div class="stat-card-glow" style="background:var(--color-secondary)"></div>
+          </div>
+          <div class="stat-card">
+            <span class="stat-card-title">Phân hệ nghiệp vụ</span>
+            <span class="stat-card-value">5</span>
+            <div class="stat-card-glow" style="background:var(--color-success)"></div>
+          </div>
+          <div class="stat-card">
+            <span class="stat-card-title">Bản đồ quan hệ</span>
+            <span class="stat-card-value">Có hỗ trợ</span>
+            <div class="stat-card-glow" style="background:var(--color-info)"></div>
+          </div>
+        </div>
+
+        <!-- Table Details Viewer -->
+        <div id="detailViewer">
+          <div class="empty-detail-state">
+            <div class="empty-icon">📂</div>
+            <h3>Chọn một bảng ở danh sách bên trái</h3>
+            <p>Chọn bất kỳ bảng nào để xem chi tiết các cột dữ liệu, kiểu dữ liệu, các ràng buộc và bản đồ mối quan hệ trực quan.</p>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+  <script>
+    // Comprehensive Metadata for the entire CSDL
+    const schemaData = {
+      users: {
+        name: "users",
+        desc: "Tài khoản đăng nhập hệ thống của toàn bộ người dùng bao gồm Nhân viên và Ban quản trị.",
+        module: "auth",
+        columns: [
+          { name: "id", type: "BIGINT", keys: ["pk"], isNull: false, desc: "Khóa chính tự tăng của tài khoản." },
+          { name: "phone", type: "VARCHAR(20)", keys: ["uq"], isNull: false, desc: "Số điện thoại chính dùng để đăng nhập hệ thống. Độc nhất toàn hệ thống." },
+          { name: "email", type: "VARCHAR(190)", keys: ["uq"], isNull: true, desc: "Địa chỉ email liên hệ phụ (Duy nhất nếu có)." },
+          { name: "pass", type: "VARCHAR(255)", keys: [], isNull: true, desc: "Mật khẩu đăng nhập đã băm (Bcrypt hoặc Pgcrypto). Có thể null nếu đăng nhập qua OTP/OAuth bên thứ ba." },
+          { name: "full_name", type: "VARCHAR(190)", keys: [], isNull: false, desc: "Họ và tên đầy đủ của người dùng." },
+          { name: "birthday", type: "DATE", keys: [], isNull: true, desc: "Ngày tháng năm sinh." },
+          { name: "gender", type: "gender_type", keys: [], isNull: true, desc: "Giới tính người dùng (male, female, other)." },
+          { name: "is_hunonic", type: "BOOLEAN", keys: [], isNull: false, desc: "Xác định tài khoản có nguồn đồng bộ từ hệ sinh thái nhà thông minh Hunonic (Mặc định: FALSE)." },
+          { name: "status", type: "user_status", keys: [], isNull: false, desc: "Trạng thái tài khoản (active: Đang hoạt động, locked: Bị khóa không cho đăng nhập)." },
+          { name: "created_at", type: "TIMESTAMPTZ", keys: [], isNull: false, desc: "Thời điểm tài khoản được tạo." },
+          { name: "updated_at", type: "TIMESTAMPTZ", keys: [], isNull: false, desc: "Thời điểm tài khoản cập nhật thông tin gần nhất." }
+        ],
+        indexes: [
+          { name: "users_pkey", type: "PRIMARY KEY", def: "PRIMARY KEY (id)" },
+          { name: "users_phone_key", type: "UNIQUE", def: "UNIQUE (phone)" },
+          { name: "users_email_key", type: "UNIQUE", def: "UNIQUE (email)" }
+        ],
+        parents: [],
+        children: ["employees", "company_memberships", "devices", "tokens", "notifications"]
+      },
+      companies: {
+        name: "companies",
+        desc: "Doanh nghiệp hoặc tổ chức sử dụng hệ thống (Mô hình Multi-tenant). Tất cả dữ liệu của công ty khác nhau được cô lập hoàn toàn.",
+        module: "org",
+        columns: [
+          { name: "id", type: "BIGINT", keys: ["pk"], isNull: false, desc: "Khóa chính tự tăng đại diện cho Công ty." },
+          { name: "name", type: "VARCHAR(190)", keys: [], isNull: false, desc: "Tên đầy đủ của Công ty." },
+          { name: "code", type: "VARCHAR(60)", keys: ["uq"], isNull: false, desc: "Mã viết tắt của công ty (Dùng cho URL đăng nhập, định danh, duy nhất trong số các công ty đang hoạt động)." },
+          { name: "timezone", type: "VARCHAR(60)", keys: [], isNull: false, desc: "Múi giờ làm việc mặc định của công ty (Mặc định: 'Asia/Ho_Chi_Minh'). Dùng để tính toán giờ công chuẩn xác theo vùng." },
+          { name: "deleted_at", type: "TIMESTAMPTZ", keys: [], isNull: true, desc: "Thời điểm xóa mềm công ty (Xóa công ty sẽ ẩn toàn bộ tài nguyên liên quan)." },
+          { name: "created_at", type: "TIMESTAMPTZ", keys: [], isNull: false, desc: "Thời điểm tạo công ty trên hệ thống." },
+          { name: "updated_at", type: "TIMESTAMPTZ", keys: [], isNull: false, desc: "Thời điểm cập nhật thông tin cấu hình công ty." }
+        ],
+        indexes: [
+          { name: "companies_pkey", type: "PRIMARY KEY", def: "PRIMARY KEY (id)" },
+          { name: "uq_company_code_active", type: "UNIQUE INDEX", def: "UNIQUE (code) WHERE deleted_at IS NULL" }
+        ],
+        parents: [],
+        children: ["branches", "departments", "employees", "company_memberships", "locations", "wifis", "holidays", "shifts", "shift_assignments", "leave_requests", "attendance_records"]
+      },
+      branches: {
+        name: "branches",
+        desc: "Chi nhánh của các công ty. Nhân viên sẽ trực thuộc một chi nhánh cụ thể để giới hạn địa điểm chấm công.",
+        module: "org",
+        columns: [
+          { name: "id", type: "BIGINT", keys: ["pk"], isNull: false, desc: "Khóa chính của chi nhánh." },
+          { name: "company_id", type: "BIGINT", keys: ["fk"], isNull: false, desc: "Mã công ty chủ quản của chi nhánh." },
+          { name: "name", type: "VARCHAR(190)", keys: [], isNull: false, desc: "Tên chi nhánh (Ví dụ: Chi nhánh Miền Bắc)." },
+          { name: "address", type: "VARCHAR(255)", keys: [], isNull: true, desc: "Địa chỉ thực tế của văn phòng chi nhánh." },
+          { name: "deleted_at", type: "TIMESTAMPTZ", keys: [], isNull: true, desc: "Thời điểm xóa mềm chi nhánh." },
+          { name: "created_at", type: "TIMESTAMPTZ", keys: [], isNull: false, desc: "Thời điểm tạo chi nhánh." },
+          { name: "updated_at", type: "TIMESTAMPTZ", keys: [], isNull: false, desc: "Thời điểm cập nhật chi nhánh gần nhất." }
+        ],
+        indexes: [
+          { name: "branches_pkey", type: "PRIMARY KEY", def: "PRIMARY KEY (id)" },
+          { name: "uq_branch_company", type: "UNIQUE CONSTRAINT", def: "UNIQUE (id, company_id) - Dùng tạo khóa ngoại kép bảo mật." },
+          { name: "idx_branches_company_id", type: "INDEX", def: "INDEX (company_id) WHERE deleted_at IS NULL" }
+        ],
+        parents: ["companies"],
+        children: ["departments", "employees", "locations", "wifis", "shift_assignments", "attendance_records"]
+      },
+      departments: {
+        name: "departments",
+        desc: "Phòng ban thuộc công ty hoặc trực thuộc một chi nhánh nhất định.",
+        module: "org",
+        columns: [
+          { name: "id", type: "BIGINT", keys: ["pk"], isNull: false, desc: "Khóa chính phòng ban." },
+          { name: "company_id", type: "BIGINT", keys: ["fk"], isNull: false, desc: "Mã công ty chủ quản." },
+          { name: "branch_id", type: "BIGINT", keys: ["fk"], isNull: true, desc: "Mã chi nhánh chứa phòng ban này (Có thể để trống nếu phòng ban chung cấp tổng công ty)." },
+          { name: "name", type: "VARCHAR(190)", keys: [], isNull: false, desc: "Tên phòng ban (Ví dụ: Phòng Kỹ thuật)." },
+          { name: "deleted_at", type: "TIMESTAMPTZ", keys: [], isNull: true, desc: "Thời điểm xóa mềm phòng ban." },
+          { name: "created_at", type: "TIMESTAMPTZ", keys: [], isNull: false, desc: "Thời điểm tạo." },
+          { name: "updated_at", type: "TIMESTAMPTZ", keys: [], isNull: false, desc: "Thời điểm cập nhật gần nhất." }
+        ],
+        indexes: [
+          { name: "departments_pkey", type: "PRIMARY KEY", def: "PRIMARY KEY (id)" },
+          { name: "uq_department_company", type: "UNIQUE CONSTRAINT", def: "UNIQUE (id, company_id) - Chống rò rỉ chéo tenant." },
+          { name: "idx_departments_company_id", type: "INDEX", def: "INDEX (company_id) WHERE deleted_at IS NULL" },
+          { name: "idx_departments_branch_id", type: "INDEX", def: "INDEX (branch_id) WHERE branch_id IS NOT NULL AND deleted_at IS NULL" }
+        ],
+        parents: ["companies", "branches"],
+        children: ["employees", "company_memberships", "shift_assignments", "attendance_records"]
+      },
+      employees: {
+        name: "employees",
+        desc: "Hồ sơ nhân sự chi tiết của nhân viên trong một công ty nhất định. Một User có thể có nhiều hồ sơ nhân viên ở các công ty khác nhau.",
+        module: "org",
+        columns: [
+          { name: "id", type: "BIGINT", keys: ["pk"], isNull: false, desc: "Khóa chính hồ sơ nhân sự." },
+          { name: "user_id", type: "BIGINT", keys: ["fk"], isNull: false, desc: "Mã tài khoản người dùng tương ứng." },
+          { name: "company_id", type: "BIGINT", keys: ["fk"], isNull: false, desc: "Mã công ty làm việc." },
+          { name: "branch_id", type: "BIGINT", keys: ["fk"], isNull: false, desc: "Mã chi nhánh làm việc (Ràng buộc kép đảm bảo đúng công ty)." },
+          { name: "department_id", type: "BIGINT", keys: ["fk"], isNull: false, desc: "Mã phòng ban làm việc (Ràng buộc kép đảm bảo đúng công ty)." },
+          { name: "employee_code", type: "VARCHAR(60)", keys: ["uq"], isNull: false, desc: "Mã nhân viên (Ví dụ: NV001, duy nhất trong cùng 1 công ty)." },
+          { name: "title", type: "VARCHAR(120)", keys: [], isNull: true, desc: "Chức danh nghề nghiệp (Ví dụ: Trưởng phòng, Lập trình viên)." },
+          { name: "status", type: "employee_status", keys: [], isNull: false, desc: "Trạng thái nhân sự (active: Đang làm việc, locked: Bị đình chỉ tạm thời)." },
+          { name: "deleted_at", type: "TIMESTAMPTZ", keys: [], isNull: true, desc: "Thời điểm nghỉ việc (Xóa mềm hồ sơ)." },
+          { name: "created_at", type: "TIMESTAMPTZ", keys: [], isNull: false, desc: "Ngày tạo hồ sơ nhân sự." },
+          { name: "updated_at", type: "TIMESTAMPTZ", keys: [], isNull: false, desc: "Ngày cập nhật hồ sơ gần nhất." }
+        ],
+        indexes: [
+          { name: "employees_pkey", type: "PRIMARY KEY", def: "PRIMARY KEY (id)" },
+          { name: "uq_employee_company", type: "UNIQUE CONSTRAINT", def: "UNIQUE (id, company_id) - Phục vụ composite FK." },
+          { name: "uq_employee_user_company", type: "UNIQUE CONSTRAINT", def: "UNIQUE (id, user_id, company_id)" },
+          { name: "uq_employee_company_code_active", type: "UNIQUE INDEX", def: "UNIQUE (company_id, employee_code) WHERE deleted_at IS NULL" },
+          { name: "uq_employee_user_company_active", type: "UNIQUE INDEX", def: "UNIQUE (user_id, company_id) WHERE deleted_at IS NULL" },
+          { name: "idx_employees_user_id", type: "INDEX", def: "INDEX (user_id) WHERE status = 'active' AND deleted_at IS NULL" }
+        ],
+        parents: ["users", "companies", "branches", "departments"],
+        children: ["company_memberships", "shift_assignments", "leave_requests", "attendance_records", "attendance_evidences"]
+      },
+      company_memberships: {
+        name: "company_memberships",
+        desc: "Bảng phân quyền và vai trò hoạt động chính của một User trong một Công ty cụ thể.",
+        module: "auth",
+        columns: [
+          { name: "id", type: "BIGINT", keys: ["pk"], isNull: false, desc: "Khóa chính bản ghi." },
+          { name: "user_id", type: "BIGINT", keys: ["fk"], isNull: false, desc: "Mã tài khoản người dùng." },
+          { name: "company_id", type: "BIGINT", keys: ["fk"], isNull: false, desc: "Mã công ty." },
+          { name: "employee_id", type: "BIGINT", keys: ["fk"], isNull: true, desc: "Mã nhân viên tương ứng (NULL nếu người dùng là Admin cấp công ty và không nằm trong danh sách chấm công)." },
+          { name: "role", type: "membership_role", keys: [], isNull: false, desc: "Quyền hạn của user tại công ty (admin: Quản trị viên quản lý bảng công cấu hình, employee: Nhân viên chấm công thông thường)." },
+          { name: "active_department_id", type: "BIGINT", keys: ["fk"], isNull: true, desc: "Phòng ban hoạt động chính hiện tại của user." },
+          { name: "deleted_at", type: "TIMESTAMPTZ", keys: [], isNull: true, desc: "Thời điểm xóa mềm thành viên." },
+          { name: "created_at", type: "TIMESTAMPTZ", keys: [], isNull: false, desc: "Thời điểm tạo liên kết." },
+          { name: "updated_at", type: "TIMESTAMPTZ", keys: [], isNull: false, desc: "Thời điểm cập nhật quyền gần nhất." }
+        ],
+        indexes: [
+          { name: "company_memberships_pkey", type: "PRIMARY KEY", def: "PRIMARY KEY (id)" },
+          { name: "uq_membership_user_company_active", type: "UNIQUE INDEX", def: "UNIQUE (user_id, company_id) WHERE deleted_at IS NULL" },
+          { name: "idx_company_memberships_employee_id", type: "INDEX", def: "INDEX (employee_id) WHERE deleted_at IS NULL" }
+        ],
+        parents: ["users", "companies", "employees", "departments"],
+        children: []
+      },
+      devices: {
+        name: "devices",
+        desc: "Thiết bị di động dùng để đăng nhập và chấm công. Đảm bảo mỗi user chỉ có duy nhất một thiết bị được kích hoạt cùng một thời điểm.",
+        module: "auth",
+        columns: [
+          { name: "id", type: "BIGINT", keys: ["pk"], isNull: false, desc: "Khóa chính thiết bị." },
+          { name: "user_id", type: "BIGINT", keys: ["fk"], isNull: false, desc: "Mã người dùng sở hữu thiết bị." },
+          { name: "device_uid", type: "VARCHAR(190)", keys: ["uq"], isNull: false, desc: "Mã định danh phần cứng duy nhất của thiết bị (UUID của App hoặc mã phần cứng)." },
+          { name: "device_name", type: "VARCHAR(190)", keys: [], isNull: true, desc: "Tên gọi của điện thoại (Ví dụ: iPhone 15 Pro, Samsung Galaxy S23)." },
+          { name: "platform", type: "device_platform", keys: [], isNull: false, desc: "Nền tảng chạy app (ios, android)." },
+          { name: "os_version", type: "VARCHAR(60)", keys: [], isNull: true, desc: "Phiên bản hệ điều hành hiện tại." },
+          { name: "app_version", type: "VARCHAR(60)", keys: [], isNull: true, desc: "Phiên bản ứng dụng cài đặt." },
+          { name: "push_token", type: "VARCHAR(255)", keys: [], isNull: true, desc: "Token đẩy thông báo (FCM/APNS Token) phục vụ nhắc nhở chấm công." },
+          { name: "status", type: "device_status", keys: [], isNull: false, desc: "Trạng thái thiết bị (pending: Chờ duyệt, approved: Đã phê duyệt, rejected: Bị từ chối, revoked: Bị thu hồi quyền đăng nhập)." },
+          { name: "last_login_at", type: "TIMESTAMPTZ", keys: [], isNull: true, desc: "Thời điểm đăng nhập cuối cùng trên thiết bị này." },
+          { name: "ip_address", type: "VARCHAR(60)", keys: [], isNull: true, desc: "Địa chỉ IP khi đăng ký thiết bị." },
+          { name: "user_agent", type: "VARCHAR(255)", keys: [], isNull: true, desc: "Thông số User Agent lúc yêu cầu." },
+          { name: "reviewed_by", type: "BIGINT", keys: ["fk"], isNull: true, desc: "ID người quản trị thực hiện duyệt thiết bị này." },
+          { name: "reviewed_at", type: "TIMESTAMPTZ", keys: [], isNull: true, desc: "Thời điểm thiết bị được duyệt hoặc từ chối." },
+          { name: "rejection_reason", type: "VARCHAR(255)", keys: [], isNull: true, desc: "Lý do từ chối duyệt thiết bị (nếu bị reject)." },
+          { name: "created_at", type: "TIMESTAMPTZ", keys: [], isNull: false, desc: "Thời điểm đăng ký thiết bị." },
+          { name: "updated_at", type: "TIMESTAMPTZ", keys: [], isNull: false, desc: "Thời điểm cập nhật thiết bị gần nhất." }
+        ],
+        indexes: [
+          { name: "devices_pkey", type: "PRIMARY KEY", def: "PRIMARY KEY (id)" },
+          { name: "uq_user_device", type: "UNIQUE", def: "UNIQUE (user_id, device_uid)" },
+          { name: "uq_user_active_device", type: "UNIQUE INDEX", def: "UNIQUE (user_id) WHERE status = 'approved' - Đảm bảo chính sách mỗi user chỉ dùng 1 thiết bị kích hoạt tại một thời điểm." },
+          { name: "idx_devices_user_id", type: "INDEX", def: "INDEX (user_id)" }
+        ],
+        parents: ["users"],
+        children: ["attendance_evidences"]
+      },
+      tokens: {
+        name: "tokens",
+        desc: "Lưu trữ các phiên đăng nhập (Access Token) của người dùng để xác thực các request gửi lên API.",
+        module: "auth",
+        columns: [
+          { name: "id", type: "BIGINT", keys: ["pk"], isNull: false, desc: "Khóa chính tự tăng." },
+          { name: "user_id", type: "BIGINT", keys: ["fk"], isNull: false, desc: "Mã tài khoản người dùng." },
+          { name: "token", type: "VARCHAR(255)", keys: ["uq"], isNull: false, desc: "Chuỗi token ngẫu nhiên mã hóa được cấp cho client làm khóa xác thực." },
+          { name: "active", type: "BOOLEAN", keys: [], isNull: false, desc: "Trạng thái token còn hoạt động hay không (false nếu đã đăng xuất)." },
+          { name: "ip_address", type: "VARCHAR(60)", keys: [], isNull: true, desc: "IP thiết bị khi đăng nhập tạo phiên." },
+          { name: "user_agent", type: "VARCHAR(255)", keys: [], isNull: true, desc: "Trình duyệt hoặc phần mềm tạo phiên." },
+          { name: "active_company_id", type: "BIGINT", keys: ["fk"], isNull: true, desc: "Mã công ty hiện tại đang chọn hoạt động." },
+          { name: "active_employee_id", type: "BIGINT", keys: ["fk"], isNull: true, desc: "Mã nhân viên hiện tại đang chọn hoạt động." },
+          { name: "created_at", type: "TIMESTAMPTZ", keys: [], isNull: false, desc: "Thời điểm đăng nhập tạo token." },
+          { name: "updated_at", type: "TIMESTAMPTZ", keys: [], isNull: false, desc: "Thời điểm cập nhật phiên gần nhất." }
+        ],
+        indexes: [
+          { name: "tokens_pkey", type: "PRIMARY KEY", def: "PRIMARY KEY (id)" },
+          { name: "tokens_token_key", type: "UNIQUE", def: "UNIQUE (token)" },
+          { name: "fk_token_employee_company", type: "FOREIGN KEY", def: "FOREIGN KEY (active_employee_id, user_id, active_company_id) REFERENCES employees(id, user_id, company_id) ON DELETE SET NULL" }
+        ],
+        parents: ["users", "employees"],
+        children: []
+      },
+      locations: {
+        name: "locations",
+        desc: "Tọa độ địa lý GPS của văn phòng, nhà máy, cơ quan cho phép nhân viên chấm công.",
+        module: "attendance",
+        columns: [
+          { name: "id", type: "BIGINT", keys: ["pk"], isNull: false, desc: "Khóa chính địa điểm." },
+          { name: "company_id", type: "BIGINT", keys: ["fk"], isNull: false, desc: "Mã công ty chủ quản." },
+          { name: "branch_id", type: "BIGINT", keys: ["fk"], isNull: false, desc: "Mã chi nhánh sở hữu điểm chấm công này (Đảm bảo thuộc cùng company_id)." },
+          { name: "name", type: "VARCHAR(190)", keys: [], isNull: false, desc: "Tên gợi nhớ địa điểm (Ví dụ: Tòa nhà A - Trụ sở chính)." },
+          { name: "address", type: "VARCHAR(255)", keys: [], isNull: true, desc: "Địa chỉ cụ thể." },
+          { name: "lat", type: "NUMERIC(10,7)", keys: [], isNull: false, desc: "Vĩ độ GPS (Latitude, giới hạn từ -90 tới 90)." },
+          { name: "lng", type: "NUMERIC(10,7)", keys: [], isNull: false, desc: "Kinh độ GPS (Longitude, giới hạn từ -180 tới 180)." },
+          { name: "radius_m", type: "INTEGER", keys: [], isNull: false, desc: "Bán kính giới hạn cho phép chấm công tính bằng mét (Mặc định: 80 mét)." },
+          { name: "geom", type: "geography(Point,4326)", keys: [], isNull: true, desc: "Điểm địa lý dạng hình học PostGIS (Tự động đồng bộ từ lat/lng qua trigger)." },
+          { name: "deleted_at", type: "TIMESTAMPTZ", keys: [], isNull: true, desc: "Thời điểm xóa mềm địa điểm." },
+          { name: "created_at", type: "TIMESTAMPTZ", keys: [], isNull: false, desc: "Thời điểm tạo." },
+          { name: "updated_at", type: "TIMESTAMPTZ", keys: [], isNull: false, desc: "Thời điểm cập nhật." }
+        ],
+        indexes: [
+          { name: "locations_pkey", type: "PRIMARY KEY", def: "PRIMARY KEY (id)" },
+          { name: "uq_location_company", type: "UNIQUE CONSTRAINT", def: "UNIQUE (id, company_id) - Phục vụ composite FK." },
+          { name: "idx_locations_branch_id", type: "INDEX", def: "INDEX (branch_id) WHERE deleted_at IS NULL" },
+          { name: "idx_locations_geom", type: "SPATIAL INDEX (GIST)", def: "INDEX (geom) USING GIST WHERE deleted_at IS NULL" }
+        ],
+        parents: ["companies", "branches"],
+        children: ["attendance_evidences"]
+      },
+      wifis: {
+        name: "wifis",
+        desc: "Danh mục các điểm phát sóng mạng Wifi nội bộ được cấp phép chấm công.",
+        module: "attendance",
+        columns: [
+          { name: "id", type: "BIGINT", keys: ["pk"], isNull: false, desc: "Khóa chính mạng wifi." },
+          { name: "company_id", type: "BIGINT", keys: ["fk"], isNull: false, desc: "ID công ty chủ quản." },
+          { name: "branch_id", type: "BIGINT", keys: ["fk"], isNull: false, desc: "ID chi nhánh đặt mạng wifi này." },
+          { name: "name", type: "VARCHAR(190)", keys: [], isNull: true, desc: "Tên gợi nhớ (Ví dụ: Wifi Văn Phòng Tầng 1)." },
+          { name: "ssid", type: "VARCHAR(190)", keys: [], isNull: false, desc: "Tên hiển thị của mạng wifi (Ví dụ: 'FPT_Congty_A')." },
+          { name: "bssid", type: "VARCHAR(60)", keys: [], isNull: true, desc: "Địa chỉ MAC của Router phát sóng (Dùng để kiểm soát chính xác vị trí phát sóng thực tế, chống phần mềm giả lập mạng wifi)." },
+          { name: "match_mode", type: "wifi_match_mode", keys: [], isNull: false, desc: "Cách thức đối sánh khi chấm công (ssid: Chỉ khớp tên mạng, ssid_bssid: Khớp cả tên mạng và địa chỉ MAC cục phát)." },
+          { name: "deleted_at", type: "TIMESTAMPTZ", keys: [], isNull: true, desc: "Thời điểm xóa mềm cấu hình." },
+          { name: "created_at", type: "TIMESTAMPTZ", keys: [], isNull: false, desc: "Thời điểm tạo." },
+          { name: "updated_at", type: "TIMESTAMPTZ", keys: [], isNull: false, desc: "Thời điểm cập nhật." }
+        ],
+        indexes: [
+          { name: "wifis_pkey", type: "PRIMARY KEY", def: "PRIMARY KEY (id)" },
+          { name: "uq_wifi_company", type: "UNIQUE CONSTRAINT", def: "UNIQUE (id, company_id)" },
+          { name: "idx_wifis_branch_id", type: "INDEX", def: "INDEX (branch_id) WHERE deleted_at IS NULL" }
+        ],
+        parents: ["companies", "branches"],
+        children: ["attendance_evidences"]
+      },
+      holidays: {
+        name: "holidays",
+        desc: "Quản lý các ngày nghỉ lễ quốc gia hoặc ngày nghỉ đặc biệt được hưởng lương của doanh nghiệp.",
+        module: "shift",
+        columns: [
+          { name: "id", type: "BIGINT", keys: ["pk"], isNull: false, desc: "Khóa chính." },
+          { name: "company_id", type: "BIGINT", keys: ["fk"], isNull: false, desc: "ID công ty áp dụng." },
+          { name: "name", type: "VARCHAR(190)", keys: [], isNull: false, desc: "Tên ngày nghỉ lễ (Ví dụ: Ngày Quốc Khánh 2/9)." },
+          { name: "holiday_date", type: "DATE", keys: [], isNull: false, desc: "Ngày lịch nghỉ lễ thực tế." },
+          { name: "work_credit", type: "NUMERIC(4,2)", keys: [], isNull: false, desc: "Hệ số công nhân viên được hưởng không cần đi làm (Thông thường: 1.00 công)." },
+          { name: "created_at", type: "TIMESTAMPTZ", keys: [], isNull: false, desc: "Thời điểm tạo cấu hình nghỉ lễ." }
+        ],
+        indexes: [
+          { name: "holidays_pkey", type: "PRIMARY KEY", def: "PRIMARY KEY (id)" },
+          { name: "uq_holiday_company_date", type: "UNIQUE", def: "UNIQUE (company_id, holiday_date)" },
+          { name: "idx_holidays_company", type: "INDEX", def: "INDEX (company_id, holiday_date)" }
+        ],
+        parents: ["companies"],
+        children: []
+      },
+      shifts: {
+        name: "shifts",
+        desc: "Cấu hình khung giờ và các quy định của ca làm việc (ca sáng, ca hành chính, ca đêm, ca gãy).",
+        module: "shift",
+        columns: [
+          { name: "id", type: "BIGINT", keys: ["pk"], isNull: false, desc: "Khóa chính của Ca làm." },
+          { name: "company_id", type: "BIGINT", keys: ["fk"], isNull: false, desc: "ID công ty quản lý ca." },
+          { name: "name", type: "VARCHAR(190)", keys: [], isNull: false, desc: "Tên gọi ca làm việc (Ví dụ: Ca Hành Chính)." },
+          { name: "start_time", type: "INTERVAL", keys: [], isNull: false, desc: "Giờ bắt đầu làm việc tính từ 00:00 ngày công (Ví dụ: '08:00:00')." },
+          { name: "end_time", type: "INTERVAL", keys: [], isNull: false, desc: "Giờ kết thúc ca làm việc (Ví dụ: '17:00:00' hoặc '30:00:00' tương ứng 06:00 ngày hôm sau đối với ca đêm)." },
+          { name: "checkin_from", type: "INTERVAL", keys: [], isNull: false, desc: "Mốc thời gian sớm nhất cho phép check-in tính từ 00:00 (Ví dụ: '07:00:00')." },
+          { name: "checkin_to", type: "INTERVAL", keys: [], isNull: false, desc: "Mốc thời gian muộn nhất cho phép check-in (Ví dụ: '10:00:00')." },
+          { name: "checkout_from", type: "INTERVAL", keys: [], isNull: false, desc: "Mốc thời gian sớm nhất cho phép check-out (Ví dụ: '16:00:00')." },
+          { name: "checkout_to", type: "INTERVAL", keys: [], isNull: false, desc: "Mốc thời gian muộn nhất cho phép check-out (Ví dụ: '22:00:00')." },
+          { name: "weekdays", type: "SMALLINT", keys: [], isNull: false, desc: "Bitmask đại diện các thứ áp dụng trong tuần (T2=1, T3=2, T4=4, T5=8, T6=16, T7=32, CN=64. Ví dụ từ thứ 2 tới thứ 6: 1+2+4+8+16 = 31)." },
+          { name: "attendance_method", type: "attendance_method", keys: [], isNull: false, desc: "Phương thức chấm công bắt buộc (gps, wifi, gps_wifi)." },
+          { name: "late_threshold_min", type: "INTEGER", keys: [], isNull: false, desc: "Số phút được phép đi muộn mà không bị phạt hay tính đi muộn (Mặc định: 0 phút)." },
+          { name: "early_threshold_min", type: "INTEGER", keys: [], isNull: false, desc: "Số phút được phép về sớm mà không bị phạt hay tính về sớm (Mặc định: 0 phút)." },
+          { name: "work_credit", type: "NUMERIC(4,2)", keys: [], isNull: false, desc: "Hệ số ngày công tiêu chuẩn của ca làm này khi làm đủ giờ (Ví dụ: 1.00 công, 0.50 công)." },
+          { name: "deleted_at", type: "TIMESTAMPTZ", keys: [], isNull: true, desc: "Thời điểm xóa mềm ca làm." },
+          { name: "created_at", type: "TIMESTAMPTZ", keys: [], isNull: false, desc: "Thời điểm tạo ca làm." },
+          { name: "updated_at", type: "TIMESTAMPTZ", keys: [], isNull: false, desc: "Thời điểm cập nhật ca làm." }
+        ],
+        indexes: [
+          { name: "shifts_pkey", type: "PRIMARY KEY", def: "PRIMARY KEY (id)" },
+          { name: "uq_shift_company", type: "UNIQUE CONSTRAINT", def: "UNIQUE (id, company_id)" }
+        ],
+        parents: ["companies"],
+        children: ["shift_assignments", "attendance_records"]
+      },
+      shift_assignments: {
+        name: "shift_assignments",
+        desc: "Lịch phân ca làm việc. Cho phép gán linh hoạt ca theo công ty, chi nhánh, phòng ban hoặc đích danh từng nhân viên theo khoảng ngày.",
+        module: "shift",
+        columns: [
+          { name: "id", type: "BIGINT", keys: ["pk"], isNull: false, desc: "Khóa chính bản ghi gán ca." },
+          { name: "shift_id", type: "BIGINT", keys: ["fk"], isNull: false, desc: "Ca làm việc áp dụng." },
+          { name: "scope_type", type: "shift_assignment_scope", keys: [], isNull: false, desc: "Phạm vi áp dụng lịch phân ca (company, branch, department, employee)." },
+          { name: "company_id", type: "BIGINT", keys: ["fk"], isNull: false, desc: "ID công ty quản lý." },
+          { name: "branch_id", type: "BIGINT", keys: ["fk"], isNull: true, desc: "ID chi nhánh áp dụng (Chỉ bắt buộc nếu scope_type = 'branch')." },
+          { name: "department_id", type: "BIGINT", keys: ["fk"], isNull: true, desc: "ID phòng ban áp dụng (Chỉ bắt buộc nếu scope_type = 'department')." },
+          { name: "employee_id", type: "BIGINT", keys: ["fk"], isNull: true, desc: "ID nhân viên áp dụng (Chỉ bắt buộc nếu scope_type = 'employee')." },
+          { name: "starts_on", type: "DATE", keys: [], isNull: true, desc: "Ngày bắt đầu có hiệu lực ca làm." },
+          { name: "ends_on", type: "DATE", keys: [], isNull: true, desc: "Ngày hết hiệu lực ca làm (Để trống nếu áp dụng ca này vô thời hạn)." },
+          { name: "deleted_at", type: "TIMESTAMPTZ", keys: [], isNull: true, desc: "Thời điểm hủy lịch phân ca (Xóa mềm)." },
+          { name: "created_at", type: "TIMESTAMPTZ", keys: [], isNull: false, desc: "Thời điểm tạo." },
+          { name: "updated_at", type: "TIMESTAMPTZ", keys: [], isNull: false, desc: "Thời điểm cập nhật gần nhất." }
+        ],
+        indexes: [
+          { name: "shift_assignments_pkey", type: "PRIMARY KEY", def: "PRIMARY KEY (id)" },
+          { name: "idx_shift_assign_company", type: "INDEX", def: "INDEX (company_id) WHERE scope_type = 'company' AND deleted_at IS NULL" },
+          { name: "idx_shift_assign_branch", type: "INDEX", def: "INDEX (branch_id) WHERE scope_type = 'branch' AND deleted_at IS NULL" },
+          { name: "idx_shift_assign_department", type: "INDEX", def: "INDEX (department_id) WHERE scope_type = 'department' AND deleted_at IS NULL" },
+          { name: "idx_shift_assign_employee", type: "INDEX", def: "INDEX (employee_id) WHERE scope_type = 'employee' AND deleted_at IS NULL" }
+        ],
+        parents: ["shifts", "companies", "branches", "departments", "employees"],
+        children: []
+      },
+      leave_requests: {
+        name: "leave_requests",
+        desc: "Đơn đăng ký xin nghỉ phép của nhân viên (phép năm, phép không lương, thai sản, v.v.).",
+        module: "shift",
+        columns: [
+          { name: "id", type: "BIGINT", keys: ["pk"], isNull: false, desc: "Khóa chính đơn xin nghỉ." },
+          { name: "company_id", type: "BIGINT", keys: ["fk"], isNull: false, desc: "ID công ty quản lý." },
+          { name: "employee_id", type: "BIGINT", keys: ["fk"], isNull: false, desc: "ID nhân viên gửi đơn nghỉ." },
+          { name: "leave_type", type: "leave_type", keys: [], isNull: false, desc: "Loại nghỉ phép (annual: Phép năm, sick: Nghỉ ốm, unpaid: Nghỉ không lương, other: Nghỉ khác)." },
+          { name: "starts_on", type: "DATE", keys: [], isNull: false, desc: "Ngày bắt đầu nghỉ." },
+          { name: "ends_on", type: "DATE", keys: [], isNull: false, desc: "Ngày kết thúc nghỉ (Bao gồm cả ngày này)." },
+          { name: "reason", type: "VARCHAR(255)", keys: [], isNull: true, desc: "Lý do xin phép nghỉ." },
+          { name: "status", type: "approval_status", keys: [], isNull: false, desc: "Trạng thái phê duyệt đơn (pending: Chờ duyệt, approved: Đồng ý cho nghỉ, rejected: Bác bỏ đơn)." },
+          { name: "approved_by", type: "BIGINT", keys: ["fk"], isNull: true, desc: "Tài khoản User Admin duyệt đơn nghỉ này." },
+          { name: "approved_at", type: "TIMESTAMPTZ", keys: [], isNull: true, desc: "Thời điểm duyệt đơn nghỉ." },
+          { name: "created_at", type: "TIMESTAMPTZ", keys: [], isNull: false, desc: "Thời điểm làm đơn." },
+          { name: "updated_at", type: "TIMESTAMPTZ", keys: [], isNull: false, desc: "Thời điểm cập nhật đơn gần nhất." }
+        ],
+        indexes: [
+          { name: "leave_requests_pkey", type: "PRIMARY KEY", def: "PRIMARY KEY (id)" },
+          { name: "idx_leave_requests_employee", type: "INDEX", def: "INDEX (employee_id, starts_on)" },
+          { name: "idx_leave_requests_pending", type: "INDEX", def: "INDEX (company_id, status) WHERE status = 'pending'" }
+        ],
+        parents: ["companies", "employees", "users"],
+        children: []
+      },
+      attendance_records: {
+        name: "attendance_records",
+        desc: "Bảng ghi công tổng hợp theo ngày làm việc, nhân viên và ca. Bản ghi này chứa thông số check-in/out cuối cùng và kết quả ngày công.",
+        module: "attendance",
+        columns: [
+          { name: "id", type: "BIGINT", keys: ["pk"], isNull: false, desc: "Khóa chính bản ghi công." },
+          { name: "company_id", type: "BIGINT", keys: ["fk"], isNull: false, desc: "ID công ty tại thời điểm chấm công." },
+          { name: "employee_id", type: "BIGINT", keys: ["fk"], isNull: false, desc: "ID hồ sơ nhân viên chấm công." },
+          { name: "branch_id", type: "BIGINT", keys: ["fk"], isNull: false, desc: "ID chi nhánh tại thời điểm chấm công (Lưu snapshot lịch sử chuyển địa điểm của nhân viên)." },
+          { name: "department_id", type: "BIGINT", keys: ["fk"], isNull: false, desc: "ID phòng ban tại thời điểm chấm công (Lưu snapshot lịch sử)." },
+          { name: "shift_id", type: "BIGINT", keys: ["fk"], isNull: false, desc: "ID ca làm việc được tính công." },
+          { name: "work_date", type: "DATE", keys: [], isNull: false, desc: "Ngày tính công (Ngày bắt đầu ca làm việc của nhân viên)." },
+          { name: "checkin_at", type: "TIMESTAMPTZ", keys: [], isNull: true, desc: "Thời điểm check-in thực tế đầu tiên hợp lệ của ca." },
+          { name: "checkout_at", type: "TIMESTAMPTZ", keys: [], isNull: true, desc: "Thời điểm check-out thực tế cuối cùng hợp lệ của ca." },
+          { name: "source", type: "attendance_source", keys: [], isNull: false, desc: "Nguồn dữ liệu bản ghi công hiện tại (online: Bấm app, offline: Lưu máy ngoại tuyến, admin_edit: Admin sửa lại công)." },
+          { name: "original_source", type: "attendance_source", keys: [], isNull: false, desc: "Lưu giữ nguồn gốc dữ liệu ban đầu trước khi bị Admin sửa đổi nhằm phục vụ đối soát." },
+          { name: "approval_status", type: "approval_status", keys: [], isNull: false, desc: "Trạng thái phê duyệt ngày công (pending: Đang chờ duyệt, approved: Đồng ý chốt công, rejected: Từ chối công)." },
+          { name: "work_status", type: "work_status", keys: [], isNull: false, desc: "Kết quả chấm công của ngày (normal: Bình thường, late: Đi muộn, early: Về sớm, late_early: Cả đi muộn về sớm, forgot: Quên checkin hoặc checkout, absent: Vắng mặt không phép, leave: Nghỉ phép hợp lệ)." },
+          { name: "late_min", type: "INTEGER", keys: [], isNull: false, desc: "Số phút đi muộn thực tế so với giờ vào ca." },
+          { name: "early_min", type: "INTEGER", keys: [], isNull: false, desc: "Số phút về sớm thực tế so với giờ ra ca." },
+          { name: "actual_work_minutes", type: "INTEGER", keys: [], isNull: false, desc: "Tổng thời gian làm việc thực tế trong ngày tính bằng phút (Checkout - Checkin trừ thời gian nghỉ trưa)." },
+          { name: "work_credit", type: "NUMERIC(4,2)", keys: [], isNull: false, desc: "Hệ số ngày công nhân viên được hưởng thực tế của ca (Ví dụ: 1.00 công, 0.50 công, hoặc 0.00 công)." },
+          { name: "approved_by", type: "BIGINT", keys: ["fk"], isNull: true, desc: "Tài khoản Admin duyệt bảng công này." },
+          { name: "approved_at", type: "TIMESTAMPTZ", keys: [], isNull: true, desc: "Thời điểm duyệt." },
+          { name: "rejection_reason", type: "VARCHAR(255)", keys: [], isNull: true, desc: "Lý do từ chối công (nếu bác bỏ)." },
+          { name: "created_at", type: "TIMESTAMPTZ", keys: [], isNull: false, desc: "Thời điểm tạo bản ghi công." },
+          { name: "updated_at", type: "TIMESTAMPTZ", keys: [], isNull: false, desc: "Thời điểm cập nhật bản ghi công." }
+        ],
+        indexes: [
+          { name: "attendance_records_pkey", type: "PRIMARY KEY", def: "PRIMARY KEY (id)" },
+          { name: "uq_attendance_record_employee", type: "UNIQUE", def: "UNIQUE (id, employee_id) - Phục vụ composite FK với evidences." },
+          { name: "uq_attendance_employee_shift_date", type: "UNIQUE", def: "UNIQUE (employee_id, shift_id, work_date)" },
+          { name: "idx_attendance_records_company_date", type: "INDEX", def: "INDEX (company_id, work_date)" },
+          { name: "idx_attendance_records_branch_date", type: "INDEX", def: "INDEX (branch_id, work_date)" },
+          { name: "idx_attendance_records_dept_date", type: "INDEX", def: "INDEX (department_id, work_date)" },
+          { name: "idx_attendance_records_employee_date", type: "INDEX", def: "INDEX (employee_id, work_date)" },
+          { name: "idx_attendance_records_pending_approval", type: "INDEX", def: "INDEX (company_id, approval_status) WHERE approval_status = 'pending'" }
+        ],
+        parents: ["companies", "employees", "branches", "departments", "shifts", "users"],
+        children: ["attendance_evidences", "attendance_edit_logs"]
+      },
+      attendance_evidences: {
+        name: "attendance_evidences",
+        desc: "Lưu vết bằng chứng chi tiết của từng lượt bấm nút chấm công của nhân viên (GPS, Wifi, Ảnh chụp khuôn mặt).",
+        module: "attendance",
+        columns: [
+          { name: "id", type: "BIGINT", keys: ["pk"], isNull: false, desc: "Khóa chính bằng chứng chấm công." },
+          { name: "employee_id", type: "BIGINT", keys: ["fk"], isNull: false, desc: "ID nhân viên thực hiện thao tác." },
+          { name: "attendance_record_id", type: "BIGINT", keys: ["fk"], isNull: true, desc: "ID bản ghi công được liên kết (NULL nếu lượt chấm thất bại hoặc chờ phân loại ca)." },
+          { name: "punch_type", type: "punch_type", keys: [], isNull: false, desc: "Loại lượt bấm (in: Bấm vào làm, out: Bấm ra ca)." },
+          { name: "device_id", type: "BIGINT", keys: ["fk"], isNull: true, desc: "Thiết bị di động gửi yêu cầu." },
+          { name: "client_time", type: "TIMESTAMPTZ", keys: [], isNull: false, desc: "Mốc thời gian hiển thị trên điện thoại nhân viên lúc bấm." },
+          { name: "server_time", type: "TIMESTAMPTZ", keys: [], isNull: false, desc: "Mốc thời gian nhận yêu cầu thực tế tại máy chủ (Chống gian lận đổi giờ điện thoại)." },
+          { name: "lat", type: "NUMERIC(10,7)", keys: [], isNull: true, desc: "Vĩ độ GPS của điện thoại tại lúc bấm." },
+          { name: "lng", type: "NUMERIC(10,7)", keys: [], isNull: true, desc: "Kinh độ GPS của điện thoại tại lúc bấm." },
+          { name: "accuracy_m", type: "NUMERIC(8,2)", keys: [], isNull: true, desc: "Sai số định vị GPS tính bằng mét." },
+          { name: "geom", type: "geography(Point,4326)", keys: [], isNull: true, desc: "Kiểu dữ liệu không gian PostGIS biểu thị tọa độ checkin." },
+          { name: "wifi_ssid", type: "VARCHAR(190)", keys: [], isNull: true, desc: "Tên mạng Wifi điện thoại bắt được lúc bấm." },
+          { name: "wifi_bssid", type: "VARCHAR(60)", keys: [], isNull: true, desc: "Địa chỉ MAC của cục phát wifi Router bắt được." },
+          { name: "photo_path", type: "VARCHAR(255)", keys: [], isNull: true, desc: "Đường dẫn ảnh selfie chụp lúc bấm để đối chiếu khuôn mặt." },
+          { name: "note", type: "VARCHAR(255)", keys: [], isNull: true, desc: "Ghi chú gửi kèm của nhân viên (Ví dụ: 'Chấm công đi công tác')." },
+          { name: "gps_valid", type: "BOOLEAN", keys: [], isNull: false, desc: "Xác thực GPS (TRUE nếu tọa độ nằm trong bán kính cho phép của địa điểm công ty)." },
+          { name: "wifi_valid", type: "BOOLEAN", keys: [], isNull: false, desc: "Xác thực Wifi (TRUE nếu SSID/BSSID trùng khớp với Wifi công ty)." },
+          { name: "distance_m", type: "NUMERIC(10,2)", keys: [], isNull: true, desc: "Khoảng cách đo được bằng mét từ máy nhân viên tới tâm tọa độ công ty." },
+          { name: "matched_location_id", type: "BIGINT", keys: ["fk"], isNull: true, desc: "Mã địa điểm công ty khớp với vị trí GPS này." },
+          { name: "matched_wifi_id", type: "BIGINT", keys: ["fk"], isNull: true, desc: "Mã Wifi công ty khớp với mạng wifi này." },
+          { name: "validation_error", type: "VARCHAR(255)", keys: [], isNull: true, desc: "Nội dung lỗi chi tiết nếu lượt bấm chấm công không hợp lệ (Ví dụ: 'Nằm ngoài bán kính văn phòng 150m')." },
+          { name: "created_at", type: "TIMESTAMPTZ", keys: [], isNull: false, desc: "Thời điểm ghi nhận bản ghi log." }
+        ],
+        indexes: [
+          { name: "attendance_evidences_pkey", type: "PRIMARY KEY", def: "PRIMARY KEY (id)" },
+          { name: "fk_evidence_record_employee", type: "FOREIGN KEY", def: "FOREIGN KEY (attendance_record_id, employee_id) REFERENCES attendance_records(id, employee_id) ON DELETE CASCADE" },
+          { name: "idx_attendance_evidences_record_id", type: "INDEX", def: "INDEX (attendance_record_id)" },
+          { name: "idx_attendance_evidences_device_id", type: "INDEX", def: "INDEX (device_id) WHERE device_id IS NOT NULL" },
+          { name: "idx_attendance_evidences_employee_id", type: "INDEX", def: "INDEX (employee_id)" },
+          { name: "idx_attendance_evidences_geom", type: "SPATIAL INDEX (GIST)", def: "INDEX (geom) USING GIST" }
+        ],
+        parents: ["employees", "attendance_records", "devices", "locations", "wifis"],
+        children: []
+      },
+      attendance_edit_logs: {
+        name: "attendance_edit_logs",
+        desc: "Lịch sử chi tiết Admin chỉnh sửa dữ liệu công của nhân viên. Dùng cho mục đích audit và kiểm tra đối soát chéo.",
+        module: "sys",
+        columns: [
+          { name: "id", type: "BIGINT", keys: ["pk"], isNull: false, desc: "Khóa chính tự tăng." },
+          { name: "attendance_record_id", type: "BIGINT", keys: ["fk"], isNull: false, desc: "ID bản ghi công bị chỉnh sửa." },
+          { name: "edited_by", type: "BIGINT", keys: ["fk"], isNull: false, desc: "ID tài khoản Admin thực hiện chỉnh sửa." },
+          { name: "before_json", type: "JSONB", keys: [], isNull: true, desc: "Dữ liệu bản ghi công trước khi bị sửa đổi (định dạng JSON)." },
+          { name: "after_json", type: "JSONB", keys: [], isNull: false, desc: "Dữ liệu bản ghi công mới được lưu (định dạng JSON)." },
+          { name: "reason", type: "VARCHAR(255)", keys: [], isNull: false, desc: "Lý do bắt buộc phải giải trình khi chỉnh sửa dữ liệu công." },
+          { name: "created_at", type: "TIMESTAMPTZ", keys: [], isNull: false, desc: "Thời điểm thực hiện chỉnh sửa." }
+        ],
+        indexes: [
+          { name: "attendance_edit_logs_pkey", type: "PRIMARY KEY", def: "PRIMARY KEY (id)" }
+        ],
+        parents: ["attendance_records", "users"],
+        children: []
+      },
+      notifications: {
+        name: "notifications",
+        desc: "Lịch sử thông báo hệ thống gửi tới thiết bị điện thoại của từng User hoặc trong phạm vi Công ty.",
+        module: "sys",
+        columns: [
+          { name: "id", type: "BIGINT", keys: ["pk"], isNull: false, desc: "Khóa chính thông báo." },
+          { name: "company_id", type: "BIGINT", keys: ["fk"], isNull: true, desc: "Mã công ty liên quan tới thông báo này (Có thể trống nếu là thông báo hệ thống toàn cục)." },
+          { name: "user_id", type: "BIGINT", keys: ["fk"], isNull: false, desc: "Mã người dùng nhận thông báo." },
+          { name: "type", type: "VARCHAR(60)", keys: [], isNull: false, desc: "Phân loại thông báo (Ví dụ: 'device_approval', 'shift_alert', 'leave_status')." },
+          { name: "title", type: "VARCHAR(190)", keys: [], isNull: false, desc: "Tiêu đề thông báo ngắn gọn." },
+          { name: "body", type: "TEXT", keys: [], isNull: true, desc: "Nội dung chi tiết thông báo." },
+          { name: "data_json", type: "JSONB", keys: [], isNull: true, desc: "Dữ liệu đính kèm dạng JSON phục vụ điều hướng (Deep link) trên thiết bị di động." },
+          { name: "read_at", type: "TIMESTAMPTZ", keys: [], isNull: true, desc: "Thời điểm người dùng mở đọc thông báo (NULL biểu thị chưa đọc)." },
+          { name: "created_at", type: "TIMESTAMPTZ", keys: [], isNull: false, desc: "Thời điểm phát đi thông báo." }
+        ],
+        indexes: [
+          { name: "notifications_pkey", type: "PRIMARY KEY", def: "PRIMARY KEY (id)" },
+          { name: "idx_notifications_user_unread", type: "INDEX", def: "INDEX (user_id, created_at DESC) WHERE read_at IS NULL" },
+          { name: "idx_notifications_company", type: "INDEX", def: "INDEX (company_id, created_at DESC) WHERE company_id IS NOT NULL" }
+        ],
+        parents: ["companies", "users"],
+        children: []
+      }
+    };
+
+    let activeFilter = 'all';
+
+    // Populate Sidebar Table Cards
+    function renderTableList(searchTerm = '') {
+      const container = document.getElementById('tableListContainer');
+      container.innerHTML = '';
+      
+      const filteredKeys = Object.keys(schemaData).filter(key => {
+        const table = schemaData[key];
+        const matchesSearch = table.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                              table.desc.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesFilter = activeFilter === 'all' || table.module === activeFilter;
+        return matchesSearch && matchesFilter;
+      });
+
+      if (filteredKeys.length === 0) {
+        container.innerHTML = '<div style="color:var(--text-muted); font-size:0.85rem; text-align:center; padding:2rem;">Không tìm thấy bảng phù hợp</div>';
+        return;
+      }
+
+      filteredKeys.forEach(key => {
+        const table = schemaData[key];
+        const card = document.createElement('div');
+        card.className = 'table-card';
+        card.id = `card-${table.name}`;
+        card.onclick = () => selectTable(table.name);
+
+        card.innerHTML = `
+          <div class="table-header-row">
+            <span class="table-name">${table.name}</span>
+            <span class="table-module-tag tag-${table.module}">${getModuleLabel(table.module)}</span>
+          </div>
+          <div class="table-desc-short">${table.desc}</div>
+        `;
+        container.appendChild(card);
+      });
+      
+      // Update stats count
+      document.getElementById('stat-tables').innerText = Object.keys(schemaData).length;
+    }
+
+    function getModuleLabel(module) {
+      const labels = {
+        auth: 'Tài khoản',
+        org: 'Tổ chức',
+        shift: 'Ca kíp',
+        attendance: 'Công',
+        sys: 'Hệ thống'
+      };
+      return labels[module] || module;
+    }
+
+    // Handle Search input
+    function handleSearch() {
+      const query = document.getElementById('searchBox').value;
+      renderTableList(query);
+    }
+
+    // Handle Module filtering
+    function filterModule(module) {
+      // Toggle active classes on badges
+      document.querySelectorAll('.filter-badge').forEach(badge => badge.classList.remove('active'));
+      document.getElementById(`btn-${module}`).classList.add('active');
+      
+      activeFilter = module;
+      handleSearch();
+    }
+
+    // Select Table to display details
+    function selectTable(tableName) {
+      // Update active cards
+      document.querySelectorAll('.table-card').forEach(card => card.classList.remove('active'));
+      const activeCard = document.getElementById(`card-${tableName}`);
+      if (activeCard) activeCard.classList.add('active');
+
+      const table = schemaData[tableName];
+      const detailViewer = document.getElementById('detailViewer');
+      
+      // Generate Relationship Nodes
+      const parentsHtml = table.parents.length > 0 
+        ? table.parents.map(p => `<div class="flow-node parent" onclick="selectTable('${p}')">${p}</div>`).join('')
+        : '<div class="flow-node node-empty">Không có khóa ngoại</div>';
+
+      const childrenHtml = table.children.length > 0
+        ? table.children.map(c => `<div class="flow-node child" onclick="selectTable('${c}')">${c}</div>`).join('')
+        : '<div class="flow-node node-empty">Không có bảng tham chiếu</div>';
+
+      // Generate columns rows
+      const columnsRowsHtml = table.columns.map(col => {
+        let keyBadges = '';
+        if (col.keys.includes('pk')) keyBadges += '<span class="key-badge key-pk">PK</span>';
+        if (col.keys.includes('fk')) keyBadges += '<span class="key-badge key-fk">FK</span>';
+        if (col.keys.includes('uq')) keyBadges += '<span class="key-badge key-uq">UQ</span>';
+
+        return `
+          <tr>
+            <td class="col-name">${col.name}</td>
+            <td class="col-type">${col.type}</td>
+            <td>
+              ${keyBadges}
+              <span class="null-badge">${col.isNull ? 'NULL' : 'NOT NULL'}</span>
+            </td>
+            <td>${col.desc}</td>
+          </tr>
+        `;
+      }).join('');
+
+      // Generate indexes
+      const indexesHtml = table.indexes.length > 0
+        ? table.indexes.map(idx => `
+            <div class="index-item">
+              <div class="index-info">
+                <span class="index-name">${idx.name}</span>
+                <span class="index-definition">${idx.def}</span>
+              </div>
+              <span class="index-type-badge">${idx.type}</span>
+            </div>
+          `).join('')
+        : '<div style="color:var(--text-muted); font-size:0.85rem;">Không cấu hình chỉ mục thủ công</div>';
+
+      detailViewer.innerHTML = `
+        <div class="detail-card">
+          <div class="detail-header">
+            <div class="detail-title-wrapper">
+              <h2>
+                <span>${table.name}</span>
+                <span class="table-module-tag tag-${table.module}">${getModuleLabel(table.module)}</span>
+              </h2>
+              <p class="detail-desc">${table.desc}</p>
+            </div>
+          </div>
+
+          <!-- Interactive Relationship Map -->
+          <div class="relation-map-container">
+            <div class="relation-map-title">
+              <svg style="width:16px;height:16px" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
+              </svg>
+              Sơ đồ quan hệ trực quan (Nhấp chọn để di chuyển nhanh)
+            </div>
+            
+            <div class="relation-flow">
+              <!-- Parents column -->
+              <div class="flow-column">
+                <span style="font-size:0.75rem; text-transform:uppercase; color:var(--text-muted); text-align:center; font-weight:600">Bảng Cha (Tham chiếu tới)</span>
+                ${parentsHtml}
+              </div>
+              
+              <!-- Arrow connector -->
+              <div class="flow-connector active">➔</div>
+              
+              <!-- Active center table node -->
+              <div class="flow-column" style="max-width:320px;">
+                <span style="font-size:0.75rem; text-transform:uppercase; color:var(--color-primary); text-align:center; font-weight:600">Bảng Hiện Tại</span>
+                <div class="flow-node active-center">${table.name}</div>
+              </div>
+              
+              <!-- Arrow connector -->
+              <div class="flow-connector active">➔</div>
+              
+              <!-- Children column -->
+              <div class="flow-column">
+                <span style="font-size:0.75rem; text-transform:uppercase; color:var(--text-muted); text-align:center; font-weight:600">Bảng Con (Bị tham chiếu bởi)</span>
+                ${childrenHtml}
+              </div>
+            </div>
+          </div>
+
+          <!-- Columns Structure Section -->
+          <div class="detail-section-title">
+            <svg style="width:18px;height:18px" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path>
+            </svg>
+            Danh sách Cột & Thuộc tính cấu trúc
+          </div>
+          
+          <div class="columns-table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th style="width: 25%">Tên Cột</th>
+                  <th style="width: 20%">Kiểu dữ liệu</th>
+                  <th style="width: 20%">Ràng buộc</th>
+                  <th style="width: 35%">Mô tả chi tiết chức năng</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${columnsRowsHtml}
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Indexes Section -->
+          <div class="detail-section-title">
+            <svg style="width:18px;height:18px" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+            </svg>
+            Danh sách Chỉ mục (Indexes & Constraints)
+          </div>
+          
+          <div class="index-list">
+            ${indexesHtml}
+          </div>
+          
+        </div>
+      `;
+
+      // Scroll to detail viewer on mobile
+      if (window.innerWidth <= 1024) {
+        document.getElementById('detailViewer').scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+
+    // Initialize application
+    window.onload = () => {
+      renderTableList();
+      
+      // Auto-select first table on load (users)
+      if (schemaData.users) {
+        selectTable('users');
+      }
+    };
+  </script>
+</body>
+</html>

@@ -16,6 +16,7 @@ export interface AttendanceRecordDto {
   workStatus: string;
   lateMin: number;
   earlyMin: number;
+  actualWorkMinutes: number;
   workCredit: number;
   createdAt: string;
 }
@@ -37,6 +38,7 @@ export function attendanceRecordToDto(record: AttendanceRecord): AttendanceRecor
     workStatus: record.workStatus,
     lateMin: record.lateMin,
     earlyMin: record.earlyMin,
+    actualWorkMinutes: record.actualWorkMinutes,
     workCredit: record.workCredit,
     createdAt: record.createdAt.toISOString(),
   };
@@ -44,7 +46,8 @@ export function attendanceRecordToDto(record: AttendanceRecord): AttendanceRecor
 
 export interface AttendanceEvidenceDto {
   id: number;
-  attendanceRecordId: number;
+  employeeId: number;
+  attendanceRecordId: number | null;
   punchType: string;
   deviceId: number | null;
   clientTime: string;
@@ -64,6 +67,7 @@ export interface AttendanceEvidenceDto {
 export function evidenceToDto(ev: AttendanceEvidence): AttendanceEvidenceDto {
   return {
     id: ev.id,
+    employeeId: ev.employeeId,
     attendanceRecordId: ev.attendanceRecordId,
     punchType: ev.punchType,
     deviceId: ev.deviceId,

@@ -1,6 +1,6 @@
 export type AttendanceSource = 'online' | 'offline' | 'admin_edit';
 export type ApprovalStatus = 'pending' | 'approved' | 'rejected';
-export type WorkStatus = 'normal' | 'late' | 'early' | 'late_early' | 'forgot' | 'absent';
+export type WorkStatus = 'normal' | 'late' | 'early' | 'late_early' | 'forgot' | 'absent' | 'leave';
 
 export interface AttendanceRecord {
   id: number;
@@ -18,6 +18,7 @@ export interface AttendanceRecord {
   workStatus: WorkStatus;
   lateMin: number;
   earlyMin: number;
+  actualWorkMinutes: number;
   workCredit: number;
   approvedBy: number | null;
   approvedAt: Date | null;
@@ -36,6 +37,7 @@ export interface CreateAttendanceRecordInput {
   checkinAt?: Date;
   checkoutAt?: Date;
   source?: AttendanceSource;
+  actualWorkMinutes?: number;
 }
 
 export interface UpdateAttendanceRecordInput {
@@ -45,5 +47,6 @@ export interface UpdateAttendanceRecordInput {
   workStatus?: WorkStatus;
   lateMin?: number;
   earlyMin?: number;
+  actualWorkMinutes?: number;
   workCredit?: number;
 }

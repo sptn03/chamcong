@@ -44,7 +44,7 @@ app.get('/api-docs.json', (_req, res) => {
 const container = buildContainer();
 
 // --- Routes không cần auth ---
-app.use('/api/auth', createAuthRouter(container.controllers.auth));
+app.use('/api/auth', createAuthRouter(container.controllers.auth, container.authMiddleware));
 
 // Health check (không cần auth)
 app.get('/health', (_req, res) => {

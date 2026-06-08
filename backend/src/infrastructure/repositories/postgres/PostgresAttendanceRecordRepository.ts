@@ -18,6 +18,7 @@ interface AttendanceRecordRow {
   work_status: string;
   late_min: number;
   early_min: number;
+  actual_work_minutes: number;
   work_credit: number;
   approved_by: number | null;
   approved_at: Date | null;
@@ -43,6 +44,7 @@ function rowToEntity(row: AttendanceRecordRow): AttendanceRecord {
     workStatus: row.work_status as AttendanceRecord['workStatus'],
     lateMin: row.late_min,
     earlyMin: row.early_min,
+    actualWorkMinutes: row.actual_work_minutes,
     workCredit: row.work_credit,
     approvedBy: row.approved_by,
     approvedAt: row.approved_at,
@@ -132,12 +134,12 @@ export class PostgresAttendanceRecordRepository implements IAttendanceRecordRepo
   async create(input: CreateAttendanceRecordInput): Promise<AttendanceRecord> {
     const result: QueryResult<AttendanceRecordRow> = await this.pool.query(
       `INSERT INTO attendance_records
-       (company_id, employee_id, branch_id, department_id, shift_id, work_date, checkin_at, source, original_source)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+       (company_id, employee_id, branch_id, department_id, shift_id, work_date, checkin_at, source, original_source, actual_work_minutes)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
        RETURNING *`,
       [input.companyId, input.employeeId, input.branchId, input.departmentId,
        input.shiftId, input.workDate, input.checkinAt ?? null,
-       input.source ?? 'online', input.source ?? 'online'],
+       input.source ?? 'online', input.source ?? 'online', input.actualWorkMinutes ?? 0],
     );
     return rowToEntity(result.rows[0]);
   }
@@ -153,6 +155,7 @@ export class PostgresAttendanceRecordRepository implements IAttendanceRecordRepo
     if (input.workStatus !== undefined) { fields.push(`work_status = $${paramIndex++}`); values.push(input.workStatus); }
     if (input.lateMin !== undefined) { fields.push(`late_min = $${paramIndex++}`); values.push(input.lateMin); }
     if (input.earlyMin !== undefined) { fields.push(`early_min = $${paramIndex++}`); values.push(input.earlyMin); }
+    if (input.actualWorkMinutes !== undefined) { fields.push(`actual_work_minutes = $${paramIndex++}`); values.push(input.actualWorkMinutes); }
     if (input.workCredit !== undefined) { fields.push(`work_credit = $${paramIndex++}`); values.push(input.workCredit); }
 
     if (fields.length === 0) {

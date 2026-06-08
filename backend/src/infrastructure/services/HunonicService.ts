@@ -21,27 +21,27 @@ export class HunonicService {
   async verifyToken(hunonicToken: string): Promise<HunonicUserInfo | null> {
     try {
       const response = await axios.post(
-        env.hunonic.verifyUrl,
+        'https://work.hunonicpro.com/v1/users/check_token_cham_cong',
         { token: hunonicToken },
         {
           headers: {
             'Content-Type': 'application/json',
-            'X-API-Key': env.hunonic.apiKey,
           },
           timeout: env.hunonic.timeoutMs,
         },
       );
 
-      if (!response.data?.sub || !response.data?.phone) {
-        console.error('[Hunonic] Response thiếu sub hoặc phone:', response.data);
+      if (!response.data || response.data.status !== true || !response.data.data) {
+        console.error('[Hunonic] Phản hồi lỗi từ Hunonic:', response.data);
         return null;
       }
 
+      const info = response.data.data;
       return {
-        sub: response.data.sub,
-        phone: response.data.phone,
-        email: response.data.email || undefined,
-        fullName: response.data.full_name || undefined,
+        sub: String(info.user_id),
+        phone: info.phone,
+        email: info.email || undefined,
+        fullName: info.fullName || undefined,
       };
     } catch (err: any) {
       console.error('[Hunonic] Lỗi xác thực token:', err.response?.data || err.message);

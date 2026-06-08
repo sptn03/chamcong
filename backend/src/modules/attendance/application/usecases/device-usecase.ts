@@ -27,6 +27,6 @@ export class DeviceUsecase {
   async updateStatus(id: number, input: UpdateDeviceStatusDto): Promise<void> {
     const existing = await this.deviceRepo.findById(id);
     if (!existing) throw new NotFoundError('Device not found');
-    await this.deviceRepo.updateStatus(id, input.status);
+    await this.deviceRepo.updateStatus(id, input.status, input.reviewedBy, input.rejectionReason);
   }
 }

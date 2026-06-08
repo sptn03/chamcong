@@ -201,8 +201,11 @@ CREATE TABLE tokens (
   active BOOLEAN NOT NULL DEFAULT TRUE,
   ip_address VARCHAR(60),
   user_agent VARCHAR(255),
+  active_company_id BIGINT,
+  active_employee_id BIGINT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT fk_token_employee_company FOREIGN KEY (active_employee_id, user_id, active_company_id) REFERENCES employees(id, user_id, company_id) ON DELETE SET NULL
 );
 
 CREATE TRIGGER trg_tokens_updated_at BEFORE UPDATE ON tokens

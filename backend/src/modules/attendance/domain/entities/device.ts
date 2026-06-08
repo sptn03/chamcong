@@ -12,6 +12,11 @@ export interface Device {
   pushToken: string | null;
   status: DeviceStatus;
   lastLoginAt: Date | null;
+  ipAddress: string | null;
+  userAgent: string | null;
+  reviewedBy: number | null;
+  reviewedAt: Date | null;
+  rejectionReason: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -24,4 +29,6 @@ export interface RegisterDeviceInput {
   osVersion?: string;
   appVersion?: string;
   pushToken?: string;
+  ipAddress?: string;
+  userAgent?: string;
 }

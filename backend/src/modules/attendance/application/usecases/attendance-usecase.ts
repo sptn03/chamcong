@@ -57,6 +57,7 @@ export class AttendanceUsecase {
 
     // Tạo evidence check-in
     await this.evidenceRepo.create({
+      employeeId: input.employeeId,
       attendanceRecordId: record.id,
       punchType: 'in',
       deviceId: input.deviceId,
@@ -78,16 +79,25 @@ export class AttendanceUsecase {
     if (!record) throw new NotFoundError('Không tìm thấy bản ghi công');
     if (record.checkoutAt) throw new ValidationError('Đã check-out rồi');
 
+    const checkinTime = record.checkinAt;
+    const checkoutTime = new Date(input.clientTime);
+    let actualWorkMinutes = 0;
+    if (checkinTime) {
+      actualWorkMinutes = Math.max(0, Math.floor((checkoutTime.getTime() - checkinTime.getTime()) / 60000));
+    }
+
     const updated = await this.recordRepo.update(input.attendanceRecordId, {
-      checkoutAt: new Date(input.clientTime),
+      checkoutAt: checkoutTime,
+      actualWorkMinutes: actualWorkMinutes,
     });
 
     // Tạo evidence check-out
     await this.evidenceRepo.create({
+      employeeId: record.employeeId,
       attendanceRecordId: record.id,
       punchType: 'out',
       deviceId: input.deviceId,
-      clientTime: new Date(input.clientTime),
+      clientTime: checkoutTime,
       lat: input.lat,
       lng: input.lng,
       accuracyM: input.accuracyM,
@@ -146,6 +156,13 @@ export class AttendanceUsecase {
       [id, editedBy, JSON.stringify(record), JSON.stringify(updateData), reason],
     );
 
+    let actualWorkMinutes: number | undefined = undefined;
+    const newCheckin = updateData.checkinAt ? new Date(updateData.checkinAt) : record.checkinAt;
+    const newCheckout = updateData.checkoutAt ? new Date(updateData.checkoutAt) : record.checkoutAt;
+    if (newCheckin && newCheckout) {
+      actualWorkMinutes = Math.max(0, Math.floor((newCheckout.getTime() - newCheckin.getTime()) / 60000));
+    }
+
     const updated = await this.recordRepo.update(id, {
       checkinAt: updateData.checkinAt ? new Date(updateData.checkinAt) : undefined,
       checkoutAt: updateData.checkoutAt ? new Date(updateData.checkoutAt) : undefined,
@@ -153,6 +170,7 @@ export class AttendanceUsecase {
       lateMin: updateData.lateMin,
       earlyMin: updateData.earlyMin,
       workCredit: updateData.workCredit,
+      actualWorkMinutes: actualWorkMinutes,
     });
 
     return attendanceRecordToDto(updated);

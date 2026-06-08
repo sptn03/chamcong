@@ -11,6 +11,11 @@ export interface DeviceDto {
   pushToken: string | null;
   status: string;
   lastLoginAt: string | null;
+  ipAddress: string | null;
+  userAgent: string | null;
+  reviewedBy: number | null;
+  reviewedAt: string | null;
+  rejectionReason: string | null;
   createdAt: string;
 }
 
@@ -26,6 +31,11 @@ export function deviceToDto(entity: Device): DeviceDto {
     pushToken: entity.pushToken,
     status: entity.status,
     lastLoginAt: entity.lastLoginAt?.toISOString() ?? null,
+    ipAddress: entity.ipAddress,
+    userAgent: entity.userAgent,
+    reviewedBy: entity.reviewedBy,
+    reviewedAt: entity.reviewedAt?.toISOString() ?? null,
+    rejectionReason: entity.rejectionReason,
     createdAt: entity.createdAt.toISOString(),
   };
 }
@@ -38,8 +48,12 @@ export interface RegisterDeviceDto {
   osVersion?: string;
   appVersion?: string;
   pushToken?: string;
+  ipAddress?: string;
+  userAgent?: string;
 }
 
 export interface UpdateDeviceStatusDto {
   status: 'pending' | 'approved' | 'rejected' | 'revoked';
+  reviewedBy?: number;
+  rejectionReason?: string;
 }

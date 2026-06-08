@@ -6,6 +6,8 @@ export interface Token {
   active: boolean;
   ipAddress: string | null;
   userAgent: string | null;
+  activeCompanyId: number | null;
+  activeEmployeeId: number | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -16,4 +18,6 @@ export interface CreateTokenInput {
   token: string;
   ipAddress?: string;
   userAgent?: string;
+  activeCompanyId?: number | null;
+  activeEmployeeId?: number | null;
 }

@@ -32,4 +32,19 @@ export class AuthController {
     await this.authUsecase.logout({ token });
     res.json(ok(null, 'Đã đăng xuất'));
   });
+
+  /** POST /api/auth/switch-company - Chọn/chuyển đổi công ty hoạt động */
+  switchCompany = asyncHandler(async (req: Request, res: Response) => {
+    const tokenId = req.tokenId;
+    const userId = req.userId;
+    const companyId = req.body?.companyId;
+
+    if (!tokenId || !userId) {
+      res.status(401).json({ success: false, message: 'Chưa xác thực hoặc token không hợp lệ' });
+      return;
+    }
+
+    const result = await this.authUsecase.switchCompany(tokenId, userId, companyId);
+    res.json(ok(result, 'Chuyển công ty hoạt động thành công'));
+  });
 }

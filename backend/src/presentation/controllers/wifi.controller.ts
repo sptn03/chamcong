@@ -12,7 +12,7 @@ export class WifiController {
   /** GET /api/wifis?[id=][&companyId=][&branchId=] */
   getAll = asyncHandler(async (req: Request, res: Response) => {
     const id = req.query.id ? parseInt(req.query.id as string, 10) : undefined;
-    const companyId = req.query.companyId ? parseInt(req.query.companyId as string, 10) : undefined;
+    const companyId = req.query.companyId ? parseInt(req.query.companyId as string, 10) : (req.activeCompanyId || undefined);
     const branchId = req.query.branchId ? parseInt(req.query.branchId as string, 10) : undefined;
 
     if (id) {

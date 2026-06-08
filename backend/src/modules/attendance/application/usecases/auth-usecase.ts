@@ -68,30 +68,26 @@ export class AuthUsecase {
       throw new UnauthorizedError('Token Hunonic không hợp lệ');
     }
 
-    // Tìm user trong hệ thống theo hunonic_sub
-    let userResult = await this.pool.query(
-      'SELECT id, status, is_hunonic FROM users WHERE hunonic_sub = $1',
-      [hunonicUser.sub],
-    );
+    let userResult;
 
-    // Nếu không tìm thấy theo sub, thử tìm theo phone
-    if (!userResult.rows.length && hunonicUser.phone) {
+    // Tìm user bằng phone trước (với is_hunonic = true)
+    if (hunonicUser.phone) {
       userResult = await this.pool.query(
         'SELECT id, status, is_hunonic FROM users WHERE phone = $1 AND is_hunonic = TRUE',
         [hunonicUser.phone],
       );
+    }
 
-      // Nếu tìm thấy theo phone, cập nhật hunonic_sub cho lần sau
-      if (userResult.rows.length) {
-        await this.pool.query(
-          'UPDATE users SET hunonic_sub = $1 WHERE id = $2',
-          [hunonicUser.sub, userResult.rows[0].id],
-        );
-      }
+    // Nếu không tìm thấy theo phone, tìm theo email (với is_hunonic = true)
+    if ((!userResult || !userResult.rows.length) && hunonicUser.email) {
+      userResult = await this.pool.query(
+        'SELECT id, status, is_hunonic FROM users WHERE email = $1 AND is_hunonic = TRUE',
+        [hunonicUser.email],
+      );
     }
 
     // Nếu không tìm thấy user nào, báo lỗi
-    if (!userResult.rows.length) {
+    if (!userResult || !userResult.rows.length) {
       throw new UnauthorizedError('Tài khoản chưa được cấu hình đăng nhập Hunonic');
     }
 
@@ -104,8 +100,8 @@ export class AuthUsecase {
     // Đăng ký / cập nhật thiết bị
     const deviceId = await this.registerOrUpdateDevice(user.id, input);
 
-    // Tạo token
-    return this.createSessionToken(user.id, deviceId);
+    // Tái sử dụng hoặc tạo session token bằng chính hunonicToken
+    return this.getOrCreateHunonicSessionToken(user.id, deviceId, input.hunonicToken);
   }
 
   /** Đăng xuất, vô hiệu token */
@@ -113,6 +109,30 @@ export class AuthUsecase {
     const tokenEntity = await this.tokenRepo.findByToken(input.token);
     if (!tokenEntity) throw new UnauthorizedError('Token không hợp lệ');
     await this.tokenRepo.deactivate(tokenEntity.id);
+  }
+
+  /** Chọn/Chuyển đổi Công ty hoạt động */
+  async switchCompany(tokenId: number, userId: number, companyId: number): Promise<{ activeCompanyId: number; activeEmployeeId: number }> {
+    if (!companyId) {
+      throw new ValidationError('companyId là bắt buộc');
+    }
+
+    const employeeResult = await this.pool.query(
+      'SELECT id FROM employees WHERE user_id = $1 AND company_id = $2 AND deleted_at IS NULL AND status = \'active\'',
+      [userId, companyId],
+    );
+
+    if (!employeeResult.rows.length) {
+      throw new ValidationError('Người dùng không có hồ sơ nhân viên hoạt động trong công ty này');
+    }
+
+    const employeeId = Number(employeeResult.rows[0].id);
+    await this.tokenRepo.updateActiveContext(tokenId, companyId, employeeId);
+
+    return {
+      activeCompanyId: companyId,
+      activeEmployeeId: employeeId,
+    };
   }
 
   /** Kiểm tra token còn hiệu lực không */
@@ -146,6 +166,29 @@ export class AuthUsecase {
        input.osVersion ?? null, input.appVersion ?? null],
     );
     return newDevice.rows[0].id;
+  }
+
+  /** Tạo hoặc lấy session token cho Hunonic bằng chính token Hunonic */
+  private async getOrCreateHunonicSessionToken(userId: number, deviceId: number | null, token: string): Promise<TokenDto> {
+    const existing = await this.tokenRepo.findByToken(token, true);
+
+    let entity;
+    if (existing) {
+      entity = await this.tokenRepo.reactivate(existing.id, userId, deviceId);
+    } else {
+      entity = await this.tokenRepo.create({
+        userId,
+        deviceId: deviceId ?? undefined,
+        token,
+      });
+    }
+
+    return {
+      token: entity.token,
+      userId: entity.userId,
+      deviceId: entity.deviceId,
+      createdAt: entity.createdAt instanceof Date ? entity.createdAt.toISOString() : new Date(entity.createdAt).toISOString(),
+    };
   }
 
   /** Tạo session token mới */

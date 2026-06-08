@@ -4,7 +4,8 @@ import { AttendanceEvidence, CreateEvidenceInput } from '../../../modules/attend
 
 interface EvidenceRow {
   id: number;
-  attendance_record_id: number;
+  employee_id: number;
+  attendance_record_id: number | null;
   punch_type: string;
   device_id: number | null;
   client_time: Date;
@@ -28,6 +29,7 @@ interface EvidenceRow {
 function rowToEntity(row: EvidenceRow): AttendanceEvidence {
   return {
     id: row.id,
+    employeeId: row.employee_id,
     attendanceRecordId: row.attendance_record_id,
     punchType: row.punch_type as AttendanceEvidence['punchType'],
     deviceId: row.device_id,
@@ -72,10 +74,10 @@ export class PostgresAttendanceEvidenceRepository implements IAttendanceEvidence
   async create(input: CreateEvidenceInput): Promise<AttendanceEvidence> {
     const result: QueryResult<EvidenceRow> = await this.pool.query(
       `INSERT INTO attendance_evidences
-       (attendance_record_id, punch_type, device_id, client_time, lat, lng, accuracy_m, wifi_ssid, wifi_bssid, photo_path, note)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+       (employee_id, attendance_record_id, punch_type, device_id, client_time, lat, lng, accuracy_m, wifi_ssid, wifi_bssid, photo_path, note)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
        RETURNING *`,
-      [input.attendanceRecordId, input.punchType, input.deviceId ?? null,
+      [input.employeeId, input.attendanceRecordId ?? null, input.punchType, input.deviceId ?? null,
        input.clientTime, input.lat ?? null, input.lng ?? null,
        input.accuracyM ?? null, input.wifiSsid ?? null, input.wifiBssid ?? null,
        input.photoPath ?? null, input.note ?? null],

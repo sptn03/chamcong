@@ -20,8 +20,8 @@ export class AttendanceController {
     }
 
     const filter = {
-      companyId: req.query.companyId ? parseInt(req.query.companyId as string, 10) : undefined,
-      employeeId: req.query.employeeId ? parseInt(req.query.employeeId as string, 10) : undefined,
+      companyId: req.query.companyId ? parseInt(req.query.companyId as string, 10) : (req.activeCompanyId || undefined),
+      employeeId: req.query.employeeId ? parseInt(req.query.employeeId as string, 10) : (req.activeEmployeeId || undefined),
       branchId: req.query.branchId ? parseInt(req.query.branchId as string, 10) : undefined,
       departmentId: req.query.departmentId ? parseInt(req.query.departmentId as string, 10) : undefined,
       fromDate: req.query.fromDate as string | undefined,
@@ -46,6 +46,9 @@ export class AttendanceController {
 
   /** POST /api/attendance/checkin - Check-in */
   checkin = asyncHandler(async (req: Request, res: Response) => {
+    if (req.activeEmployeeId && !req.body.employeeId) {
+      req.body.employeeId = req.activeEmployeeId;
+    }
     const result = await this.attendanceUsecase.checkin(req.body);
     res.status(201).json(created('Check-in thành công', result));
   });

@@ -2,7 +2,8 @@ export type PunchType = 'in' | 'out';
 
 export interface AttendanceEvidence {
   id: number;
-  attendanceRecordId: number;
+  employeeId: number;
+  attendanceRecordId: number | null;
   punchType: PunchType;
   deviceId: number | null;
   clientTime: Date;
@@ -24,7 +25,8 @@ export interface AttendanceEvidence {
 }
 
 export interface CreateEvidenceInput {
-  attendanceRecordId: number;
+  employeeId: number;
+  attendanceRecordId?: number;
   punchType: PunchType;
   deviceId?: number;
   clientTime: Date;
