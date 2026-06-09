@@ -1,11 +1,17 @@
 import { Pool, QueryResult } from 'pg';
 import { IShiftAssignmentRepository } from '../../../modules/attendance/domain/repositories';
 import { ShiftAssignment, CreateShiftAssignmentInput } from '../../../modules/attendance/domain/entities';
+import {
+  SHIFT_ASSIGNMENT_SCOPE_COMPANY,
+  SHIFT_ASSIGNMENT_SCOPE_BRANCH,
+  SHIFT_ASSIGNMENT_SCOPE_DEPARTMENT,
+  SHIFT_ASSIGNMENT_SCOPE_EMPLOYEE,
+} from '../../../shared/constants';
 
 interface ShiftAssignmentRow {
   id: number;
   shift_id: number;
-  scope_type: string;
+  scope_type: number;
   company_id: number;
   branch_id: number | null;
   department_id: number | null;
@@ -17,11 +23,14 @@ interface ShiftAssignmentRow {
   updated_at: Date;
 }
 
+const SCOPE_MAP: Record<number, string> = { 1: 'company', 2: 'branch', 3: 'department', 4: 'employee' };
+const SCOPE_DB: Record<string, number> = { company: 1, branch: 2, department: 3, employee: 4 };
+
 function rowToEntity(row: ShiftAssignmentRow): ShiftAssignment {
   return {
     id: row.id,
     shiftId: row.shift_id,
-    scopeType: row.scope_type as ShiftAssignment['scopeType'],
+    scopeType: SCOPE_MAP[row.scope_type] as ShiftAssignment['scopeType'],
     companyId: row.company_id,
     branchId: row.branch_id,
     departmentId: row.department_id,
@@ -56,15 +65,16 @@ export class PostgresShiftAssignmentRepository implements IShiftAssignmentReposi
   async findByEmployeeId(employeeId: number): Promise<ShiftAssignment[]> {
     const result: QueryResult<ShiftAssignmentRow> = await this.pool.query(
       `SELECT sa.* FROM shift_assignments sa WHERE sa.deleted_at IS NULL AND (
-        (sa.scope_type = 'employee' AND sa.employee_id = $1)
-        OR (sa.scope_type = 'department' AND sa.department_id IN (
+        (sa.scope_type = $2 AND sa.employee_id = $1)
+        OR (sa.scope_type = $3 AND sa.department_id IN (
           SELECT department_id FROM employees WHERE id = $1))
-        OR (sa.scope_type = 'branch' AND sa.branch_id IN (
+        OR (sa.scope_type = $4 AND sa.branch_id IN (
           SELECT branch_id FROM employees WHERE id = $1))
-        OR (sa.scope_type = 'company' AND sa.company_id IN (
+        OR (sa.scope_type = $5 AND sa.company_id IN (
           SELECT company_id FROM employees WHERE id = $1))
       )`,
-      [employeeId],
+      [employeeId, SHIFT_ASSIGNMENT_SCOPE_EMPLOYEE, SHIFT_ASSIGNMENT_SCOPE_DEPARTMENT,
+       SHIFT_ASSIGNMENT_SCOPE_BRANCH, SHIFT_ASSIGNMENT_SCOPE_COMPANY],
     );
     return result.rows.map(rowToEntity);
   }
@@ -91,7 +101,7 @@ export class PostgresShiftAssignmentRepository implements IShiftAssignmentReposi
        (shift_id, scope_type, company_id, branch_id, department_id, employee_id, starts_on, ends_on)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
        RETURNING *`,
-      [input.shiftId, input.scopeType, input.companyId,
+      [input.shiftId, SCOPE_DB[input.scopeType], input.companyId,
        input.branchId ?? null, input.departmentId ?? null, input.employeeId ?? null,
        input.startsOn ?? null, input.endsOn ?? null],
     );
@@ -113,13 +123,15 @@ export class PostgresShiftAssignmentRepository implements IShiftAssignmentReposi
          AND (sa.starts_on IS NULL OR sa.starts_on <= $2)
          AND (sa.ends_on IS NULL OR sa.ends_on >= $2)
          AND (
-           (sa.scope_type = 'employee' AND sa.employee_id = $1)
-           OR (sa.scope_type = 'department' AND sa.department_id = e.department_id)
-           OR (sa.scope_type = 'branch' AND sa.branch_id = e.branch_id)
-           OR (sa.scope_type = 'company' AND sa.company_id = e.company_id)
+           (sa.scope_type = $3 AND sa.employee_id = $1)
+           OR (sa.scope_type = $4 AND sa.department_id = e.department_id)
+           OR (sa.scope_type = $5 AND sa.branch_id = e.branch_id)
+           OR (sa.scope_type = $6 AND sa.company_id = e.company_id)
          )
        ORDER BY sa.id, sa.scope_type`,
-      [employeeId, date],
+      [employeeId, date,
+       SHIFT_ASSIGNMENT_SCOPE_EMPLOYEE, SHIFT_ASSIGNMENT_SCOPE_DEPARTMENT,
+       SHIFT_ASSIGNMENT_SCOPE_BRANCH, SHIFT_ASSIGNMENT_SCOPE_COMPANY],
     );
     return result.rows.map(rowToEntity);
   }

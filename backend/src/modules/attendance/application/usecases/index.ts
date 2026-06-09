@@ -10,4 +10,3 @@ export { LocationUsecase } from './location-usecase';
 export { WifiUsecase } from './wifi-usecase';
 export { ShiftUsecase } from './shift-usecase';
 export { ShiftAssignmentUsecase } from './shift-assignment-usecase';
-export { NotificationUsecase } from './notification-usecase';

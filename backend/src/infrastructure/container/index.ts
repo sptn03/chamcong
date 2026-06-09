@@ -18,7 +18,7 @@ import {
   PostgresWifiRepository,
   PostgresShiftRepository,
   PostgresShiftAssignmentRepository,
-  PostgresNotificationRepository,
+  PostgresUserRepository,
 } from '../repositories/postgres';
 
 // Usecases
@@ -35,7 +35,6 @@ import {
   WifiUsecase,
   ShiftUsecase,
   ShiftAssignmentUsecase,
-  NotificationUsecase,
 } from '../../modules/attendance/application/usecases';
 
 // Controllers
@@ -52,7 +51,6 @@ import {
   WifiController,
   ShiftController,
   ShiftAssignmentController,
-  NotificationController,
 } from '../../presentation/controllers';
 
 export interface AppContainer {
@@ -71,7 +69,6 @@ export interface AppContainer {
     shift: ShiftController;
     shiftAssignment: ShiftAssignmentController;
     attendance: AttendanceController;
-    notification: NotificationController;
   };
 }
 
@@ -92,17 +89,17 @@ export function buildContainer(): AppContainer {
   const shiftAssignmentRepo = new PostgresShiftAssignmentRepository(pool);
   const recordRepo = new PostgresAttendanceRecordRepository(pool);
   const evidenceRepo = new PostgresAttendanceEvidenceRepository(pool);
-  const notifRepo = new PostgresNotificationRepository(pool);
+  const userRepo = new PostgresUserRepository(pool);
 
   // --- Services ---
   const hunonicService = new HunonicService();
 
   // --- Usecases ---
-  const authUsecase = new AuthUsecase(tokenRepo, pool, hunonicService);
+  const authUsecase = new AuthUsecase(tokenRepo, userRepo, pool, hunonicService);
   const companyUsecase = new CompanyUsecase(companyRepo);
   const branchUsecase = new BranchUsecase(branchRepo);
   const deptUsecase = new DepartmentUsecase(deptRepo);
-  const employeeUsecase = new EmployeeUsecase(employeeRepo);
+  const employeeUsecase = new EmployeeUsecase(employeeRepo, pool);
   const membershipUsecase = new MembershipUsecase(membershipRepo);
   const deviceUsecase = new DeviceUsecase(deviceRepo);
   const locationUsecase = new LocationUsecase(locationRepo);
@@ -117,7 +114,6 @@ export function buildContainer(): AppContainer {
     shiftAssignmentRepo,
     pool,
   );
-  const notifUsecase = new NotificationUsecase(notifRepo);
 
   // --- Middleware ---
   const authMiddleware = createAuthMiddleware(tokenRepo);
@@ -135,7 +131,6 @@ export function buildContainer(): AppContainer {
   const shiftController = new ShiftController(shiftUsecase);
   const shiftAssignmentController = new ShiftAssignmentController(shiftAssignmentUsecase);
   const attendanceController = new AttendanceController(attendanceUsecase);
-  const notifController = new NotificationController(notifUsecase);
 
   return {
     pool,
@@ -153,7 +148,6 @@ export function buildContainer(): AppContainer {
       shift: shiftController,
       shiftAssignment: shiftAssignmentController,
       attendance: attendanceController,
-      notification: notifController,
     },
   };
 }

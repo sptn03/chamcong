@@ -9,7 +9,7 @@ const swaggerDefinition: swaggerJsdoc.Options['definition'] = {
   },
   servers: [
     {
-      url: 'http://localhost:3000',
+      url: 'http://localhost:30010',
       description: 'Development server',
     },
   ],
@@ -239,6 +239,7 @@ const swaggerDefinition: swaggerJsdoc.Options['definition'] = {
         properties: {
           id: { type: 'integer', example: 1 },
           userId: { type: 'integer', example: 1 },
+          userName: { type: 'string', example: 'Nguyễn Văn A' },
           deviceUid: { type: 'string', example: 'abc-123-def' },
           deviceName: { type: 'string', nullable: true, example: 'iPhone 15' },
           platform: { type: 'string', enum: ['ios', 'android'], example: 'ios' },

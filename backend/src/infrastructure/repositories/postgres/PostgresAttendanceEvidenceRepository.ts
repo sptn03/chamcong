@@ -6,7 +6,7 @@ interface EvidenceRow {
   id: number;
   employee_id: number;
   attendance_record_id: number | null;
-  punch_type: string;
+  punch_type: number;
   device_id: number | null;
   client_time: Date;
   server_time: Date;
@@ -26,12 +26,15 @@ interface EvidenceRow {
   created_at: Date;
 }
 
+const PUNCH_TYPE_MAP: Record<number, string> = { 1: 'in', 2: 'out' };
+const PUNCH_TYPE_DB: Record<string, number> = { in: 1, out: 2 };
+
 function rowToEntity(row: EvidenceRow): AttendanceEvidence {
   return {
     id: row.id,
     employeeId: row.employee_id,
     attendanceRecordId: row.attendance_record_id,
-    punchType: row.punch_type as AttendanceEvidence['punchType'],
+    punchType: PUNCH_TYPE_MAP[row.punch_type] as AttendanceEvidence['punchType'],
     deviceId: row.device_id,
     clientTime: row.client_time,
     serverTime: row.server_time,
@@ -74,13 +77,15 @@ export class PostgresAttendanceEvidenceRepository implements IAttendanceEvidence
   async create(input: CreateEvidenceInput): Promise<AttendanceEvidence> {
     const result: QueryResult<EvidenceRow> = await this.pool.query(
       `INSERT INTO attendance_evidences
-       (employee_id, attendance_record_id, punch_type, device_id, client_time, lat, lng, accuracy_m, wifi_ssid, wifi_bssid, photo, note)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+       (employee_id, attendance_record_id, punch_type, device_id, client_time, lat, lng, accuracy_m, wifi_ssid, wifi_bssid, photo, note, gps_valid, wifi_valid, distance_m, matched_location_id, matched_wifi_id, validation_error)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
        RETURNING *`,
-      [input.employeeId, input.attendanceRecordId ?? null, input.punchType, input.deviceId ?? null,
+      [input.employeeId, input.attendanceRecordId ?? null, PUNCH_TYPE_DB[input.punchType], input.deviceId ?? null,
        input.clientTime, input.lat ?? null, input.lng ?? null,
        input.accuracyM ?? null, input.wifiSsid ?? null, input.wifiBssid ?? null,
-       input.photoPath ?? null, input.note ?? null],
+       input.photoPath ?? null, input.note ?? null,
+       input.gpsValid ?? false, input.wifiValid ?? false, input.distanceM ?? null,
+       input.matchedLocationId ?? null, input.matchedWifiId ?? null, input.validationError ?? null],
     );
     return rowToEntity(result.rows[0]);
   }

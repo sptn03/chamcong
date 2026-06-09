@@ -1,6 +1,7 @@
 import { Pool, QueryResult } from 'pg';
 import { IWifiRepository } from '../../../modules/attendance/domain/repositories';
 import { Wifi, CreateWifiInput } from '../../../modules/attendance/domain/entities';
+import { WIFI_MATCH_MODE_SSID, WIFI_MATCH_MODE_SSID_BSSID } from '../../../shared/constants';
 
 interface WifiRow {
   id: number;
@@ -9,11 +10,13 @@ interface WifiRow {
   name: string | null;
   ssid: string;
   bssid: string | null;
-  match_mode: string;
+  match_mode: number;
   deleted_at: Date | null;
   created_at: Date;
   updated_at: Date;
 }
+
+const WIFI_MATCH_MODE_MAP: Record<number, string> = { 1: 'ssid', 2: 'ssid_bssid' };
 
 function rowToEntity(row: WifiRow): Wifi {
   return {
@@ -23,11 +26,16 @@ function rowToEntity(row: WifiRow): Wifi {
     name: row.name,
     ssid: row.ssid,
     bssid: row.bssid,
-    matchMode: row.match_mode as Wifi['matchMode'],
+    matchMode: WIFI_MATCH_MODE_MAP[row.match_mode] as Wifi['matchMode'],
     deletedAt: row.deleted_at,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
+}
+
+function matchModeToDb(mode: string | undefined): number {
+  if (mode === 'ssid') return WIFI_MATCH_MODE_SSID;
+  return WIFI_MATCH_MODE_SSID_BSSID;
 }
 
 export class PostgresWifiRepository implements IWifiRepository {
@@ -75,7 +83,7 @@ export class PostgresWifiRepository implements IWifiRepository {
        VALUES ($1, $2, $3, $4, $5, $6)
        RETURNING *`,
       [input.companyId, input.branchId, input.name ?? null,
-       input.ssid, input.bssid ?? null, input.matchMode ?? 'ssid_bssid'],
+       input.ssid, input.bssid ?? null, matchModeToDb(input.matchMode)],
     );
     return rowToEntity(result.rows[0]);
   }
@@ -88,7 +96,7 @@ export class PostgresWifiRepository implements IWifiRepository {
     if (input.name !== undefined) { fields.push(`name = $${paramIndex++}`); values.push(input.name); }
     if (input.ssid !== undefined) { fields.push(`ssid = $${paramIndex++}`); values.push(input.ssid); }
     if (input.bssid !== undefined) { fields.push(`bssid = $${paramIndex++}`); values.push(input.bssid); }
-    if (input.matchMode !== undefined) { fields.push(`match_mode = $${paramIndex++}`); values.push(input.matchMode); }
+    if (input.matchMode !== undefined) { fields.push(`match_mode = $${paramIndex++}`); values.push(matchModeToDb(input.matchMode)); }
     if (input.branchId !== undefined) { fields.push(`branch_id = $${paramIndex++}`); values.push(input.branchId); }
 
     if (fields.length === 0) return this.findById(id) as Promise<Wifi>;

@@ -10,4 +10,3 @@ export { createWifiRouter } from './wifi.routes';
 export { createShiftRouter } from './shift.routes';
 export { createShiftAssignmentRouter } from './shift-assignment.routes';
 export { createAttendanceRouter } from './attendance.routes';
-export { createNotificationRouter } from './notification.routes';

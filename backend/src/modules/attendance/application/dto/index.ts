@@ -10,4 +10,3 @@ export * from './location.dto';
 export * from './wifi.dto';
 export * from './shift.dto';
 export * from './shift-assignment.dto';
-export * from './notification.dto';

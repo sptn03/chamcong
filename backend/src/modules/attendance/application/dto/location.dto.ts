@@ -4,6 +4,7 @@ export interface LocationDto {
   id: number;
   companyId: number;
   branchId: number;
+  employeeId?: number | null;
   name: string;
   address: string | null;
   lat: number;
@@ -17,6 +18,7 @@ export function locationToDto(entity: Location): LocationDto {
     id: entity.id,
     companyId: entity.companyId,
     branchId: entity.branchId,
+    employeeId: entity.employeeId,
     name: entity.name,
     address: entity.address,
     lat: entity.lat,
@@ -29,6 +31,7 @@ export function locationToDto(entity: Location): LocationDto {
 export interface CreateLocationDto {
   companyId: number;
   branchId: number;
+  employeeId?: number | null;
   name: string;
   address?: string;
   lat: number;
@@ -43,4 +46,6 @@ export interface UpdateLocationDto {
   lng?: number;
   radiusM?: number;
   branchId?: number;
+  employeeId?: number | null;
 }
+

@@ -37,4 +37,11 @@ export interface CreateEvidenceInput {
   wifiBssid?: string;
   photoPath?: string;
   note?: string;
+  gpsValid?: boolean;
+  wifiValid?: boolean;
+  distanceM?: number | null;
+  matchedLocationId?: number | null;
+  matchedWifiId?: number | null;
+  validationError?: string | null;
 }
+

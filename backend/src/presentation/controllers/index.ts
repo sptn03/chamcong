@@ -10,4 +10,3 @@ export { LocationController } from './location.controller';
 export { WifiController } from './wifi.controller';
 export { ShiftController } from './shift.controller';
 export { ShiftAssignmentController } from './shift-assignment.controller';
-export { NotificationController } from './notification.controller';

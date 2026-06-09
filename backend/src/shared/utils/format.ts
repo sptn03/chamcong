@@ -1,5 +1,5 @@
 /**
- * Format a number with thousand separators.
+ * Format số thành chuỗi có dấu chấm chấm
  */
 export function formatNumber(num: number, decimals: number = 0): string {
   return num.toLocaleString('vi-VN', {
@@ -9,7 +9,7 @@ export function formatNumber(num: number, decimals: number = 0): string {
 }
 
 /**
- * Format a number as Vietnamese currency (VND).
+ * Format số thành chuỗi tiền tệ Việt Nam (VND)
  */
 export function formatCurrency(num: number): string {
   return num.toLocaleString('vi-VN', {
@@ -19,7 +19,7 @@ export function formatCurrency(num: number): string {
 }
 
 /**
- * Truncate a string to a maximum length.
+ * Cắt chuỗi thành độ dài tối đa
  */
 export function truncate(str: string, maxLength: number): string {
   if (str.length <= maxLength) return str;

@@ -20,9 +20,8 @@ export class HunonicService {
    */
   async verifyToken(hunonicToken: string): Promise<HunonicUserInfo | null> {
     try {
-      const response = await axios.post(
-        'https://work.hunonicpro.com/v1/users/check_token_cham_cong',
-        { token: hunonicToken },
+      const response = await axios.get(
+        'https://work.hunonicpro.com/v1/users/check_token_cham_cong?token=' + hunonicToken,
         {
           headers: {
             'Content-Type': 'application/json',

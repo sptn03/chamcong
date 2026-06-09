@@ -1,17 +1,21 @@
 import { Pool, QueryResult } from 'pg';
 import { IDeviceRepository } from '../../../modules/attendance/domain/repositories';
 import { Device, RegisterDeviceInput } from '../../../modules/attendance/domain/entities';
+import {
+  DEVICE_STATUS_APPROVED,
+  DEVICE_STATUS_REVOKED,
+} from '../../../shared/constants';
 
 interface DeviceRow {
   id: number;
   user_id: number;
   device_uid: string;
   device_name: string | null;
-  platform: string;
+  platform: number;
   os_version: string | null;
   app_version: string | null;
   push_token: string | null;
-  status: string;
+  status: number;
   last_login_at: Date | null;
   ip_address: string | null;
   user_agent: string | null;
@@ -22,17 +26,20 @@ interface DeviceRow {
   updated_at: Date;
 }
 
+const DEVICE_PLATFORM_MAP: Record<number, string> = { 1: 'ios', 2: 'android' };
+const DEVICE_STATUS_MAP: Record<number, string> = { 1: 'pending', 2: 'approved', 3: 'rejected', 4: 'revoked' };
+
 function rowToEntity(row: DeviceRow): Device {
   return {
     id: row.id,
     userId: row.user_id,
     deviceUid: row.device_uid,
     deviceName: row.device_name,
-    platform: row.platform as Device['platform'],
+    platform: DEVICE_PLATFORM_MAP[row.platform] as Device['platform'],
     osVersion: row.os_version,
     appVersion: row.app_version,
     pushToken: row.push_token,
-    status: row.status as Device['status'],
+    status: DEVICE_STATUS_MAP[row.status] as Device['status'],
     lastLoginAt: row.last_login_at,
     ipAddress: row.ip_address,
     userAgent: row.user_agent,
@@ -43,6 +50,8 @@ function rowToEntity(row: DeviceRow): Device {
     updatedAt: row.updated_at,
   };
 }
+
+const PLATFORM_DB: Record<string, number> = { ios: 1, android: 2 };
 
 export class PostgresDeviceRepository implements IDeviceRepository {
   constructor(private readonly pool: Pool) {}
@@ -61,6 +70,19 @@ export class PostgresDeviceRepository implements IDeviceRepository {
       [userId],
     );
     return result.rows.map(rowToEntity);
+  }
+
+  async findAll(): Promise<Device[]> {
+    const result: QueryResult<DeviceRow & { user_name: string }> = await this.pool.query(
+      `SELECT d.*, u.full_name AS user_name 
+       FROM devices d 
+       LEFT JOIN users u ON u.id = d.user_id 
+       ORDER BY d.last_login_at DESC NULLS LAST`,
+    );
+    return result.rows.map((row) => ({
+      ...rowToEntity(row),
+      userName: row.user_name,
+    }));
   }
 
   async findByUid(userId: number, deviceUid: string): Promise<Device | null> {
@@ -85,7 +107,7 @@ export class PostgresDeviceRepository implements IDeviceRepository {
          user_agent = EXCLUDED.user_agent,
          updated_at = NOW()
        RETURNING *`,
-      [input.userId, input.deviceUid, input.deviceName ?? null, input.platform,
+      [input.userId, input.deviceUid, input.deviceName ?? null, PLATFORM_DB[input.platform],
        input.osVersion ?? null, input.appVersion ?? null, input.pushToken ?? null,
        input.ipAddress ?? null, input.userAgent ?? null],
     );
@@ -94,26 +116,30 @@ export class PostgresDeviceRepository implements IDeviceRepository {
 
   async updateStatus(id: number, status: Device['status'], reviewedBy?: number, rejectionReason?: string): Promise<void> {
     if (status === 'approved') {
-      // If we approve this device, revoke any other approved devices of this user first
       const deviceRes = await this.pool.query('SELECT user_id FROM devices WHERE id = $1', [id]);
       if (deviceRes.rows.length) {
         const userId = deviceRes.rows[0].user_id;
         await this.pool.query(
-          "UPDATE devices SET status = 'revoked', updated_at = NOW() WHERE user_id = $1 AND status = 'approved' AND id <> $2",
-          [userId, id]
+          `UPDATE devices SET status = $1, updated_at = NOW() WHERE user_id = $2 AND status = $3 AND id <> $4`,
+          [DEVICE_STATUS_REVOKED, userId, DEVICE_STATUS_APPROVED, id]
         );
       }
     }
+
+    const statusDb = status === 'pending' ? 1
+      : status === 'approved' ? 2
+      : status === 'rejected' ? 3
+      : 4;
 
     await this.pool.query(
       `UPDATE devices 
        SET status = $1, 
            reviewed_by = $2, 
-           reviewed_at = CASE WHEN $1 IN ('approved', 'rejected') THEN NOW() ELSE NULL END,
+           reviewed_at = CASE WHEN $1 IN (2, 3) THEN NOW() ELSE NULL END,
            rejection_reason = $3,
            updated_at = NOW() 
        WHERE id = $4`,
-      [status, reviewedBy ?? null, rejectionReason ?? null, id]
+      [statusDb, reviewedBy ?? null, rejectionReason ?? null, id]
     );
   }
 

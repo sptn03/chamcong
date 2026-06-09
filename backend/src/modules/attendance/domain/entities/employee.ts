@@ -1,5 +1,4 @@
 export type EmployeeStatus = 'active' | 'locked';
-export type GenderType = 'male' | 'female' | 'other';
 
 export interface Employee {
   id: number;
@@ -8,11 +7,11 @@ export interface Employee {
   branchId: number;
   departmentId: number;
   employeeCode: string;
-  fullName: string;
-  birthday: string | null;
-  gender: GenderType | null;
   title: string | null;
   status: EmployeeStatus;
+  fullName?: string;
+  phone?: string;
+  role?: number;
   deletedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
@@ -24,18 +23,12 @@ export interface CreateEmployeeInput {
   branchId: number;
   departmentId: number;
   employeeCode: string;
-  fullName: string;
-  birthday?: string;
-  gender?: GenderType;
   title?: string;
 }
 
 export interface UpdateEmployeeInput {
   branchId?: number;
   departmentId?: number;
-  fullName?: string;
-  birthday?: string;
-  gender?: GenderType;
   title?: string;
   status?: EmployeeStatus;
 }

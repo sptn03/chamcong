@@ -7,12 +7,14 @@ interface MembershipRow {
   user_id: number;
   company_id: number;
   employee_id: number | null;
-  role: string;
+  role: number;
   active_department_id: number | null;
   deleted_at: Date | null;
   created_at: Date;
   updated_at: Date;
 }
+
+const MEMBERSHIP_ROLE_MAP: Record<number, string> = { 1: 'admin', 2: 'employee' };
 
 function rowToEntity(row: MembershipRow): CompanyMembership {
   return {
@@ -20,12 +22,18 @@ function rowToEntity(row: MembershipRow): CompanyMembership {
     userId: row.user_id,
     companyId: row.company_id,
     employeeId: row.employee_id,
-    role: row.role as CompanyMembership['role'],
+    role: MEMBERSHIP_ROLE_MAP[row.role] as CompanyMembership['role'],
     activeDepartmentId: row.active_department_id,
     deletedAt: row.deleted_at,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
+}
+
+const ROLE_DB: Record<string, number> = { admin: 1, employee: 2 };
+
+function roleToDb(role: string): number {
+  return ROLE_DB[role] ?? 2;
 }
 
 export class PostgresMembershipRepository implements IMembershipRepository {
@@ -68,7 +76,7 @@ export class PostgresMembershipRepository implements IMembershipRepository {
       `INSERT INTO company_memberships (user_id, company_id, employee_id, role, active_department_id)
        VALUES ($1, $2, $3, $4, $5)
        RETURNING *`,
-      [input.userId, input.companyId, input.employeeId ?? null, input.role, input.activeDepartmentId ?? null],
+      [input.userId, input.companyId, input.employeeId ?? null, roleToDb(input.role), input.activeDepartmentId ?? null],
     );
     return rowToEntity(result.rows[0]);
   }

@@ -11,7 +11,16 @@ export class LocationUsecase {
     }
     if (input.lat < -90 || input.lat > 90) throw new ValidationError('lat must be between -90 and 90');
     if (input.lng < -180 || input.lng > 180) throw new ValidationError('lng must be between -180 and 180');
-    const entity = await this.locationRepo.create(input);
+    const entity = await this.locationRepo.create({
+      companyId: input.companyId,
+      branchId: input.branchId,
+      employeeId: input.employeeId,
+      name: input.name,
+      address: input.address,
+      lat: input.lat,
+      lng: input.lng,
+      radiusM: input.radiusM
+    });
     return locationToDto(entity);
   }
 

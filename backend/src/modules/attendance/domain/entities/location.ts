@@ -2,6 +2,7 @@ export interface Location {
   id: number;
   companyId: number;
   branchId: number;
+  employeeId?: number | null;
   name: string;
   address: string | null;
   lat: number;
@@ -15,9 +16,11 @@ export interface Location {
 export interface CreateLocationInput {
   companyId: number;
   branchId: number;
+  employeeId?: number | null;
   name: string;
   address?: string;
   lat: number;
   lng: number;
   radiusM?: number;
 }
+

@@ -6,6 +6,7 @@ interface LocationRow {
   id: number;
   company_id: number;
   branch_id: number;
+  employee_id: number | null;
   name: string;
   address: string | null;
   lat: number;
@@ -21,6 +22,7 @@ function rowToEntity(row: LocationRow): Location {
     id: row.id,
     companyId: row.company_id,
     branchId: row.branch_id,
+    employeeId: row.employee_id,
     name: row.name,
     address: row.address,
     lat: row.lat,
@@ -61,10 +63,10 @@ export class PostgresLocationRepository implements ILocationRepository {
 
   async create(input: CreateLocationInput): Promise<Location> {
     const result: QueryResult<LocationRow> = await this.pool.query(
-      `INSERT INTO locations (company_id, branch_id, name, address, lat, lng, radius_m)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
+      `INSERT INTO locations (company_id, branch_id, employee_id, name, address, lat, lng, radius_m)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
        RETURNING *`,
-      [input.companyId, input.branchId, input.name, input.address ?? null,
+      [input.companyId, input.branchId, input.employeeId ?? null, input.name, input.address ?? null,
        input.lat, input.lng, input.radiusM ?? 80],
     );
     return rowToEntity(result.rows[0]);
@@ -81,6 +83,7 @@ export class PostgresLocationRepository implements ILocationRepository {
     if (input.lng !== undefined) { fields.push(`lng = $${paramIndex++}`); values.push(input.lng); }
     if (input.radiusM !== undefined) { fields.push(`radius_m = $${paramIndex++}`); values.push(input.radiusM); }
     if (input.branchId !== undefined) { fields.push(`branch_id = $${paramIndex++}`); values.push(input.branchId); }
+    if (input.employeeId !== undefined) { fields.push(`employee_id = $${paramIndex++}`); values.push(input.employeeId); }
 
     if (fields.length === 0) return this.findById(id) as Promise<Location>;
 

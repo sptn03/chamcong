@@ -7,11 +7,11 @@ export interface EmployeeDto {
   branchId: number;
   departmentId: number;
   employeeCode: string;
-  fullName: string;
-  birthday: string | null;
-  gender: string | null;
   title: string | null;
   status: string;
+  fullName?: string;
+  phone?: string;
+  role?: number;
   createdAt: string;
 }
 
@@ -23,33 +23,42 @@ export function employeeToDto(entity: Employee): EmployeeDto {
     branchId: entity.branchId,
     departmentId: entity.departmentId,
     employeeCode: entity.employeeCode,
-    fullName: entity.fullName,
-    birthday: entity.birthday,
-    gender: entity.gender,
     title: entity.title,
     status: entity.status,
+    fullName: entity.fullName,
+    phone: entity.phone,
+    role: entity.role,
     createdAt: entity.createdAt.toISOString(),
   };
 }
 
 export interface CreateEmployeeDto {
-  userId: number;
+  userId?: number;
   companyId: number;
   branchId: number;
   departmentId: number;
   employeeCode: string;
-  fullName: string;
-  birthday?: string;
-  gender?: string;
   title?: string;
+  fullName: string;
+  phone: string;
+  password?: string;
+  email?: string;
+  birthday?: string;
+  gender?: number;
+  role?: number;
 }
 
 export interface UpdateEmployeeDto {
   branchId?: number;
   departmentId?: number;
-  fullName?: string;
-  birthday?: string;
-  gender?: string;
   title?: string;
   status?: string;
+  fullName?: string;
+  phone?: string;
+  password?: string;
+  email?: string;
+  birthday?: string;
+  gender?: number;
+  role?: number;
 }
+

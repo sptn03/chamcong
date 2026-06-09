@@ -3,6 +3,7 @@ import { Device } from '../../domain/entities';
 export interface DeviceDto {
   id: number;
   userId: number;
+  userName?: string;
   deviceUid: string;
   deviceName: string | null;
   platform: string;
@@ -23,6 +24,7 @@ export function deviceToDto(entity: Device): DeviceDto {
   return {
     id: entity.id,
     userId: entity.userId,
+    userName: entity.userName,
     deviceUid: entity.deviceUid,
     deviceName: entity.deviceName,
     platform: entity.platform,

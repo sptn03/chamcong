@@ -13,7 +13,7 @@ interface ShiftRow {
   checkout_from: string;
   checkout_to: string;
   weekdays: number;
-  attendance_method: string;
+  attendance_method: number;
   late_threshold_min: number;
   early_threshold_min: number;
   work_credit: number;
@@ -21,6 +21,9 @@ interface ShiftRow {
   created_at: Date;
   updated_at: Date;
 }
+
+const ATTENDANCE_METHOD_MAP: Record<number, string> = { 1: 'gps', 2: 'wifi', 3: 'gps_wifi', 4: 'gps_or_wifi' };
+const ATTENDANCE_METHOD_DB: Record<string, number> = { gps: 1, wifi: 2, gps_wifi: 3, gps_or_wifi: 4 };
 
 function rowToEntity(row: ShiftRow): Shift {
   return {
@@ -34,7 +37,7 @@ function rowToEntity(row: ShiftRow): Shift {
     checkoutFrom: row.checkout_from,
     checkoutTo: row.checkout_to,
     weekdays: row.weekdays,
-    attendanceMethod: row.attendance_method as Shift['attendanceMethod'],
+    attendanceMethod: ATTENDANCE_METHOD_MAP[row.attendance_method] as Shift['attendanceMethod'],
     lateThresholdMin: row.late_threshold_min,
     earlyThresholdMin: row.early_threshold_min,
     workCredit: row.work_credit,
@@ -72,7 +75,7 @@ export class PostgresShiftRepository implements IShiftRepository {
        RETURNING *`,
       [input.companyId, input.name, input.startTime, input.endTime,
        input.checkinFrom, input.checkinTo, input.checkoutFrom, input.checkoutTo,
-       input.weekdays, input.attendanceMethod,
+       input.weekdays, ATTENDANCE_METHOD_DB[input.attendanceMethod],
        input.lateThresholdMin ?? 0, input.earlyThresholdMin ?? 0,
        input.workCredit ?? 1.0],
     );
@@ -88,11 +91,14 @@ export class PostgresShiftRepository implements IShiftRepository {
       [input.name, 'name'], [input.startTime, 'start_time'], [input.endTime, 'end_time'],
       [input.checkinFrom, 'checkin_from'], [input.checkinTo, 'checkin_to'],
       [input.checkoutFrom, 'checkout_from'], [input.checkoutTo, 'checkout_to'],
-      [input.attendanceMethod, 'attendance_method'],
     ];
 
     for (const [val, col] of map) {
       if (val !== undefined) { fields.push(`${col} = $${paramIndex++}`); values.push(val); }
+    }
+    if (input.attendanceMethod !== undefined) {
+      fields.push(`attendance_method = $${paramIndex++}`);
+      values.push(ATTENDANCE_METHOD_DB[input.attendanceMethod]);
     }
     if (input.weekdays !== undefined) { fields.push(`weekdays = $${paramIndex++}`); values.push(input.weekdays); }
     if (input.lateThresholdMin !== undefined) { fields.push(`late_threshold_min = $${paramIndex++}`); values.push(input.lateThresholdMin); }

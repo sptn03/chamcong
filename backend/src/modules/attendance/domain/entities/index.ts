@@ -12,4 +12,3 @@ export * from './shift-assignment';
 export * from './attendance-record';
 export * from './attendance-evidence';
 export * from './user';
-export * from './notification';

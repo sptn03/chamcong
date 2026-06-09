@@ -4,6 +4,7 @@ export type DeviceStatus = 'pending' | 'approved' | 'rejected' | 'revoked';
 export interface Device {
   id: number;
   userId: number;
+  userName?: string;
   deviceUid: string;
   deviceName: string | null;
   platform: DevicePlatform;

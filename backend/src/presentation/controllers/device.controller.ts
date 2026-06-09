@@ -21,7 +21,8 @@ export class DeviceController {
       const result = await this.deviceUsecase.getByUser(userId);
       res.json(ok(result));
     } else {
-      res.json(ok([]));
+      const result = await this.deviceUsecase.getAll();
+      res.json(ok(result));
     }
   });
 

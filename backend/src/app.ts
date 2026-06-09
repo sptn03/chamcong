@@ -19,7 +19,6 @@ import {
   createWifiRouter,
   createShiftRouter,
   createShiftAssignmentRouter,
-  createNotificationRouter,
 } from './presentation/routes';
 
 const app = express();
@@ -67,7 +66,6 @@ apiWithAuth.use('/wifis', createWifiRouter(container.controllers.wifi));
 apiWithAuth.use('/shifts', createShiftRouter(container.controllers.shift));
 apiWithAuth.use('/shift-assignments', createShiftAssignmentRouter(container.controllers.shiftAssignment));
 apiWithAuth.use('/attendance', createAttendanceRouter(container.controllers.attendance));
-apiWithAuth.use('/notifications', createNotificationRouter(container.controllers.notification));
 
 app.use('/api', apiWithAuth);
 

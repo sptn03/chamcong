@@ -153,7 +153,6 @@ Mỗi ca làm gồm các thiết lập:
 | # | Tính năng | Phía | Trạng thái |
 |---|-----------|------|------------|
 | 1 | Đăng nhập (SĐT + mật khẩu), không tự tạo tài khoản | Nhân viên | Chốt |
-| 2 | Đăng nhập qua Google / Apple (OAuth) | Nhân viên | Chốt |
 | 3 | Mỗi tài khoản chỉ đăng nhập trên 1 phòng | Nhân viên | Chốt |
 | 4 | 1 tài khoản thuộc nhiều công ty + nút chuyển công ty | Nhân viên | Chốt |
 | 5 | Xác nhận đăng nhập / thiết bị mới (bởi Admin) | Nhân viên + Admin | Chốt |

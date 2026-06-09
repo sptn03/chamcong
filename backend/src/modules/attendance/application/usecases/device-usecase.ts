@@ -24,6 +24,11 @@ export class DeviceUsecase {
     return entities.map(deviceToDto);
   }
 
+  async getAll(): Promise<DeviceDto[]> {
+    const entities = await this.deviceRepo.findAll();
+    return entities.map(deviceToDto);
+  }
+
   async updateStatus(id: number, input: UpdateDeviceStatusDto): Promise<void> {
     const existing = await this.deviceRepo.findById(id);
     if (!existing) throw new NotFoundError('Device not found');

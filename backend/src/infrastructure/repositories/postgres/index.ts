@@ -11,4 +11,5 @@ export { PostgresLocationRepository } from './PostgresLocationRepository';
 export { PostgresWifiRepository } from './PostgresWifiRepository';
 export { PostgresShiftRepository } from './PostgresShiftRepository';
 export { PostgresShiftAssignmentRepository } from './PostgresShiftAssignmentRepository';
-export { PostgresNotificationRepository } from './PostgresNotificationRepository';
+export { PostgresUserRepository } from './PostgresUserRepository';
+
