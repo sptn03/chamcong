@@ -15,7 +15,7 @@ interface EvidenceRow {
   accuracy_m: number | null;
   wifi_ssid: string | null;
   wifi_bssid: string | null;
-  photo_path: string | null;
+  photo: string | null;
   note: string | null;
   gps_valid: boolean;
   wifi_valid: boolean;
@@ -40,7 +40,7 @@ function rowToEntity(row: EvidenceRow): AttendanceEvidence {
     accuracyM: row.accuracy_m,
     wifiSsid: row.wifi_ssid,
     wifiBssid: row.wifi_bssid,
-    photoPath: row.photo_path,
+    photoPath: row.photo,
     note: row.note,
     gpsValid: row.gps_valid,
     wifiValid: row.wifi_valid,
@@ -74,7 +74,7 @@ export class PostgresAttendanceEvidenceRepository implements IAttendanceEvidence
   async create(input: CreateEvidenceInput): Promise<AttendanceEvidence> {
     const result: QueryResult<EvidenceRow> = await this.pool.query(
       `INSERT INTO attendance_evidences
-       (employee_id, attendance_record_id, punch_type, device_id, client_time, lat, lng, accuracy_m, wifi_ssid, wifi_bssid, photo_path, note)
+       (employee_id, attendance_record_id, punch_type, device_id, client_time, lat, lng, accuracy_m, wifi_ssid, wifi_bssid, photo, note)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
        RETURNING *`,
       [input.employeeId, input.attendanceRecordId ?? null, input.punchType, input.deviceId ?? null,

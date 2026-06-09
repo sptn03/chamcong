@@ -118,8 +118,30 @@ export class AttendanceUsecase {
 
   async getRecords(filter: AttendanceFilterDto) {
     const result = await this.recordRepo.findFiltered(filter);
+    const records = result.data.map(attendanceRecordToDto);
+    // Lấy tên + mã từ bảng users & employees
+    if (records.length > 0) {
+      const ids = [...new Set(records.map(r => r.employeeId))];
+      const empRows = await this.pool.query(
+        `SELECT e.id, u.full_name, e.employee_code
+         FROM employees e JOIN users u ON u.id = e.user_id
+         WHERE e.id = ANY($1)`,
+        [ids],
+      );
+      const nameMap: Record<number, { name: string; code: string }> = {};
+      for (const row of empRows.rows) {
+        nameMap[row.id] = { name: row.full_name, code: row.employee_code };
+      }
+      for (const r of records) {
+        const info = nameMap[r.employeeId];
+        if (info) {
+          r.employeeName = info.name;
+          r.employeeCode = info.code;
+        }
+      }
+    }
     return {
-      data: result.data.map(attendanceRecordToDto),
+      data: records,
       pagination: {
         page: result.page,
         limit: result.limit,

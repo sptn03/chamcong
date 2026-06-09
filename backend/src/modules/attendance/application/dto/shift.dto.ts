@@ -18,17 +18,31 @@ export interface ShiftDto {
   createdAt: string;
 }
 
+/** Format Postgres INTERVAL to "HH:MM" string */
+function fmtInterval(v: any): string {
+  if (!v) return '00:00';
+  // PG driver trả về object {hours, minutes} cho interval
+  if (typeof v === 'object' && v !== null) {
+    const h = String(v.hours ?? 0).padStart(2, '0');
+    const m = String(v.minutes ?? 0).padStart(2, '0');
+    return `${h}:${m}`;
+  }
+  // Nếu là string "08:00:00" thì cắt bỏ giây
+  if (typeof v === 'string') return v.slice(0, 5);
+  return String(v);
+}
+
 export function shiftToDto(entity: Shift): ShiftDto {
   return {
     id: entity.id,
     companyId: entity.companyId,
     name: entity.name,
-    startTime: entity.startTime,
-    endTime: entity.endTime,
-    checkinFrom: entity.checkinFrom,
-    checkinTo: entity.checkinTo,
-    checkoutFrom: entity.checkoutFrom,
-    checkoutTo: entity.checkoutTo,
+    startTime: fmtInterval(entity.startTime),
+    endTime: fmtInterval(entity.endTime),
+    checkinFrom: fmtInterval(entity.checkinFrom),
+    checkinTo: fmtInterval(entity.checkinTo),
+    checkoutFrom: fmtInterval(entity.checkoutFrom),
+    checkoutTo: fmtInterval(entity.checkoutTo),
     weekdays: entity.weekdays,
     attendanceMethod: entity.attendanceMethod,
     lateThresholdMin: entity.lateThresholdMin,

@@ -3,7 +3,6 @@ import { AuthController } from '../controllers/auth.controller';
 
 /**
  * Routes cho Auth
- * Login không cần auth middleware (gắn ở app.ts)
  */
 export function createAuthRouter(controller: AuthController, authMiddleware: any): Router {
   const router = Router();

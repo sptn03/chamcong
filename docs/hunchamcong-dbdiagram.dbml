@@ -101,7 +101,7 @@ Table accounts {
 
   phone varchar(20) [not null, unique, note: 'SĐT đăng nhập']
   email varchar(190) [unique]
-  password_hash varchar(255)
+  pass varchar(255)
 
   google_sub varchar(190) [unique]
   apple_sub varchar(190) [unique]
@@ -553,7 +553,7 @@ Table attendance_evidences {
   wifi_ssid varchar(190)
   wifi_bssid varchar(60)
 
-  photo_path varchar(255)
+  photo varchar(255)
   photo_hash varchar(255)
 
   note varchar(255)

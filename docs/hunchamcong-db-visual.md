@@ -65,7 +65,7 @@ erDiagram
         bigint id PK
         varchar phone UK
         varchar email UK
-        varchar password_hash
+        varchar pass
         varchar google_sub UK
         varchar apple_sub UK
         account_status status
@@ -294,7 +294,7 @@ erDiagram
         numeric accuracy_m
         varchar wifi_ssid
         varchar wifi_bssid
-        varchar photo_path
+        varchar photo
         varchar photo_hash
         varchar note
         boolean gps_valid
@@ -412,7 +412,7 @@ sequenceDiagram
     App->>API: Khi có mạng: POST /attendance/offline<br/>multipart ảnh + GPS + client_time
     API->>API: Verify App Check + access token
     API->>DB: Insert/Update attendance_records<br/>source=offline, approval_status=pending
-    API->>DB: Insert attendance_evidences<br/>photo_path, photo_hash, GPS
+    API->>DB: Insert attendance_evidences<br/>photo, photo_hash, GPS
     API-->>App: Đã gửi, chờ Admin duyệt
 
     Admin->>API: Xem danh sách offline pending

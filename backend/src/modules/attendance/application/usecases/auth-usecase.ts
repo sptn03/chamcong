@@ -13,14 +13,20 @@ export class AuthUsecase {
   ) {}
 
   /** Đăng nhập bằng phone + password (cho user thường) */
-  async login(input: LoginDto): Promise<TokenDto> {
+  async login(input: LoginDto): Promise<{
+    token: string;
+    userId: number;
+    deviceId: number | null;
+    createdAt: string;
+    user: { id: number; phone: string; fullName: string; role: string };
+  }> {
     if (!input.phone || !input.password) {
       throw new ValidationError('Số điện thoại và mật khẩu là bắt buộc');
     }
 
     // Tìm user theo phone
     const userResult = await this.pool.query(
-      'SELECT id, password_hash, status, is_hunonic FROM users WHERE phone = $1',
+      'SELECT id, pass, full_name, status, is_hunonic FROM users WHERE phone = $1',
       [input.phone],
     );
 
@@ -30,7 +36,6 @@ export class AuthUsecase {
 
     const user = userResult.rows[0];
 
-    // Nếu là tài khoản Hunonic thì không cho đăng nhập bằng password
     if (user.is_hunonic) {
       throw new UnauthorizedError('Tài khoản này sử dụng đăng nhập qua Hunonic');
     }
@@ -41,7 +46,7 @@ export class AuthUsecase {
 
     // Kiểm tra mật khẩu dùng pgcrypto
     const pwResult = await this.pool.query(
-      'SELECT crypt($1, password_hash) = password_hash AS valid FROM users WHERE id = $2',
+      'SELECT crypt($1, pass) = pass AS valid FROM users WHERE id = $2',
       [input.password, user.id],
     );
 
@@ -53,7 +58,23 @@ export class AuthUsecase {
     const deviceId = await this.registerOrUpdateDevice(user.id, input);
 
     // Tạo token
-    return this.createSessionToken(user.id, deviceId);
+    const session = await this.createSessionToken(user.id, deviceId);
+
+    // Lấy role từ company_memberships
+    const memResult = await this.pool.query(
+      "SELECT role FROM company_memberships WHERE user_id = $1 AND deleted_at IS NULL LIMIT 1",
+      [user.id],
+    );
+
+    return {
+      ...session,
+      user: {
+        id: user.id,
+        phone: input.phone,
+        fullName: user.full_name,
+        role: memResult.rows.length > 0 ? memResult.rows[0].role : 'employee',
+      },
+    };
   }
 
   /** Đăng nhập qua Hunonic (cho user có is_hunonic = true) */

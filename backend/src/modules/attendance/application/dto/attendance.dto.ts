@@ -21,12 +21,12 @@ export interface AttendanceRecordDto {
   createdAt: string;
 }
 
-export function attendanceRecordToDto(record: AttendanceRecord): AttendanceRecordDto {
+export function attendanceRecordToDto(record: AttendanceRecord, empName?: string, empCode?: string): AttendanceRecordDto {
   return {
     id: record.id,
     employeeId: record.employeeId,
-    employeeName: '',
-    employeeCode: '',
+    employeeName: empName || record.employeeName || '',
+    employeeCode: empCode || record.employeeCode || '',
     branchId: record.branchId,
     departmentId: record.departmentId,
     shiftId: record.shiftId,

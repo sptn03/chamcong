@@ -110,7 +110,7 @@ CREATE TABLE accounts (
   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   phone VARCHAR(20) NOT NULL UNIQUE,
   email VARCHAR(190) NULL UNIQUE,
-  password_hash VARCHAR(255) NULL,
+  pass VARCHAR(255) NULL,
   google_sub VARCHAR(190) NULL UNIQUE,
   apple_sub VARCHAR(190) NULL UNIQUE,
   role ENUM('admin','employee') NOT NULL DEFAULT 'employee',
@@ -367,7 +367,7 @@ CREATE TABLE attendance_evidences (
   accuracy_m DECIMAL(8,2) NULL,
   wifi_ssid VARCHAR(190) NULL,
   wifi_bssid VARCHAR(60) NULL,
-  photo_path VARCHAR(255) NULL,
+  photo VARCHAR(255) NULL,
   note VARCHAR(255) NULL,
   gps_valid TINYINT(1) NOT NULL DEFAULT 0,
   wifi_valid TINYINT(1) NOT NULL DEFAULT 0,
@@ -419,7 +419,7 @@ CREATE TABLE attendance_edit_logs (
 - Neu `attendance_method = gps`, request hop le khi GPS nam trong it nhat 1 location duoc phep.
 - Neu `attendance_method = wifi`, request hop le khi Wifi khop it nhat 1 wifi duoc phep.
 - Neu `attendance_method = gps_wifi`, request chi hop le khi ca GPS va Wifi deu dung.
-- Cham offline luon tao `attendance_records.source = offline`, `status = pending`, co `attendance_evidences.photo_path`, `lat`, `lng`; chi tinh cong sau khi Admin duyet.
+- Cham offline luon tao `attendance_records.source = offline`, `status = pending`, co `attendance_evidences.photo`, `lat`, `lng`; chi tinh cong sau khi Admin duyet.
 - Ban ghi co checkin nhung khong co checkout thi tinh `forgot`.
 - Ngay co ca duoc gan nhung khong co checkin thi tinh `absent`.
 - 1 ca duoc tinh cong khi co ca checkin va checkout hop le. Cong = `1 / shifts_per_workday` cho moi ca hop le.
