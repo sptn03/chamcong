@@ -25,6 +25,8 @@ export interface TokenDto {
   userId: number;
   deviceId: number | null;
   createdAt: string;
+  activeCompanyId?: number | null;
+  activeEmployeeId?: number | null;
 }
 
 export interface HunonicPasswordLoginDto {

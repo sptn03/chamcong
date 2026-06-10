@@ -314,14 +314,35 @@ export class AuthUsecase {
 
     const existing = await this.tokenRepo.findByToken(token, true);
 
+    // Tự động gán công ty nếu người dùng chỉ thuộc về duy nhất 1 công ty hoạt động
+    const empResult = await this.pool.query(
+      'SELECT id, company_id FROM employees WHERE user_id = $1 AND deleted_at IS NULL AND status = $2',
+      [userId, EMPLOYEE_STATUS_ACTIVE]
+    );
+
+    let activeCompanyId: number | null = null;
+    let activeEmployeeId: number | null = null;
+
+    if (empResult.rows.length === 1) {
+      activeCompanyId = Number(empResult.rows[0].company_id);
+      activeEmployeeId = Number(empResult.rows[0].id);
+    }
+
     let entity;
     if (existing) {
       entity = await this.tokenRepo.reactivate(existing.id, userId, deviceId);
+      if (activeCompanyId && activeEmployeeId) {
+        await this.tokenRepo.updateActiveContext(existing.id, activeCompanyId, activeEmployeeId);
+        entity.activeCompanyId = activeCompanyId;
+        entity.activeEmployeeId = activeEmployeeId;
+      }
     } else {
       entity = await this.tokenRepo.create({
         userId,
         deviceId: deviceId ?? undefined,
         token,
+        activeCompanyId: activeCompanyId ?? undefined,
+        activeEmployeeId: activeEmployeeId ?? undefined,
       });
     }
 
@@ -330,6 +351,8 @@ export class AuthUsecase {
       userId: entity.userId,
       deviceId: entity.deviceId,
       createdAt: toVNTime(entity.createdAt instanceof Date ? entity.createdAt : new Date(entity.createdAt)),
+      activeCompanyId: entity.activeCompanyId,
+      activeEmployeeId: entity.activeEmployeeId,
     };
   }
 
@@ -339,11 +362,27 @@ export class AuthUsecase {
       await this.tokenRepo.deactivateAllForUser(userId);
     }
 
+    // Tự động gán công ty nếu người dùng chỉ thuộc về duy nhất 1 công ty hoạt động
+    const empResult = await this.pool.query(
+      'SELECT id, company_id FROM employees WHERE user_id = $1 AND deleted_at IS NULL AND status = $2',
+      [userId, EMPLOYEE_STATUS_ACTIVE]
+    );
+
+    let activeCompanyId: number | undefined = undefined;
+    let activeEmployeeId: number | undefined = undefined;
+
+    if (empResult.rows.length === 1) {
+      activeCompanyId = Number(empResult.rows[0].company_id);
+      activeEmployeeId = Number(empResult.rows[0].id);
+    }
+
     const token = uuidv4();
     const entity = await this.tokenRepo.create({
       userId,
       deviceId: deviceId ?? undefined,
       token,
+      activeCompanyId,
+      activeEmployeeId,
     });
 
     return {
@@ -351,6 +390,8 @@ export class AuthUsecase {
       userId: entity.userId,
       deviceId: entity.deviceId,
       createdAt: toVNTime(entity.createdAt),
+      activeCompanyId: entity.activeCompanyId,
+      activeEmployeeId: entity.activeEmployeeId,
     };
   }
 }

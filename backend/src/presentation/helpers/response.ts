@@ -1,5 +1,5 @@
 export interface GetResponse<T> {
-  success: true;
+  status: true;
   message: string;
   data: T;
   pagination?: {
@@ -11,19 +11,19 @@ export interface GetResponse<T> {
 }
 
 export interface PostResponse {
-  success: true;
+  status: true;
   message: string;
   data?: unknown;
 }
 
 export interface ErrorResponse {
-  success: false;
+  status: false;
   message: string;
   errors?: string[];
 }
 
 export function ok<T>(data: T, message: string = 'Success'): GetResponse<T> {
-  return { success: true, message, data };
+  return { status: true, message, data };
 }
 
 export function okPaginated<T>(
@@ -34,7 +34,7 @@ export function okPaginated<T>(
   message: string = 'Success',
 ): GetResponse<T> {
   return {
-    success: true,
+    status: true,
     message,
     data,
     pagination: {
@@ -47,9 +47,9 @@ export function okPaginated<T>(
 }
 
 export function created(message: string = 'Created', data?: unknown): PostResponse {
-  return { success: true, message, data };
+  return { status: true, message, data };
 }
 
 export function error(message: string, errors?: string[]): ErrorResponse {
-  return { success: false, message, errors };
+  return { status: false, message, errors };
 }

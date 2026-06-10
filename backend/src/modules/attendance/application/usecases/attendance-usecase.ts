@@ -135,6 +135,10 @@ export class AttendanceUsecase {
     if (!isOffline) {
       const method = shift.attendanceMethod; // 'gps' | 'wifi' | 'gps_wifi' | 'gps_or_wifi'
 
+      let minDistance: number | null = null;
+      let closestLocationName: string = '';
+      let closestLocationRadius: number = 0;
+
       // Xác thực GPS
       if (method === 'gps' || method === 'gps_wifi' || (method as string) === 'gps_or_wifi') {
         if (input.lat === undefined || input.lng === undefined) {
@@ -154,6 +158,11 @@ export class AttendanceUsecase {
 
         for (const loc of locRes.rows) {
           const dist = haversineDistance(input.lat, input.lng, parseFloat(loc.lat), parseFloat(loc.lng));
+          if (minDistance === null || dist < minDistance) {
+            minDistance = dist;
+            closestLocationName = loc.name;
+            closestLocationRadius = loc.radius_m;
+          }
           if (dist <= loc.radius_m) {
             gpsValid = true;
             matchedLocationId = Number(loc.id);
@@ -202,7 +211,11 @@ export class AttendanceUsecase {
         const locationList = allowedLocations.length > 0
           ? allowedLocations.map(l => `"${l.name}" (bán kính ${l.radius_m}m)`).join(', ')
           : 'chưa có vị trí nào được cấu hình';
-        throw new ValidationError(`Bạn không nằm trong vị trí chấm công cho phép. Các vị trí hợp lệ: ${locationList}`);
+        let details = '';
+        if (minDistance !== null) {
+          details = ` Bạn hiện cách vị trí "${closestLocationName}" khoảng ${Math.round(minDistance)}m (vượt quá bán kính cho phép ${closestLocationRadius}m).`;
+        }
+        throw new ValidationError(`Bạn không nằm trong vị trí chấm công cho phép.${details} Các vị trí hợp lệ: ${locationList}`);
       }
       if (method === 'wifi' && !wifiValid) {
         const wifiList = allowedWifis.length > 0
@@ -217,8 +230,12 @@ export class AttendanceUsecase {
         const wifiList = allowedWifis.length > 0
           ? allowedWifis.map(w => w.match_mode === 1 ? `"${w.ssid}"` : `"${w.ssid}" (BSSID: ${w.bssid})`).join(', ')
           : 'chưa có mạng Wifi nào được cấu hình';
+        let details = '';
+        if (!gpsValid && minDistance !== null) {
+          details = ` Bạn hiện cách vị trí "${closestLocationName}" khoảng ${Math.round(minDistance)}m (vượt quá bán kính cho phép ${closestLocationRadius}m).`;
+        }
         throw new ValidationError(
-          `Yêu cầu cả vị trí GPS và mạng Wifi đều phải hợp lệ. ` +
+          `Yêu cầu cả vị trí GPS và mạng Wifi đều phải hợp lệ.${details} ` +
           `Vị trí hợp lệ: ${locationList}. Mạng Wifi hợp lệ: ${wifiList}`
         );
       }
@@ -229,8 +246,12 @@ export class AttendanceUsecase {
         const wifiList = allowedWifis.length > 0
           ? allowedWifis.map(w => w.match_mode === 1 ? `"${w.ssid}"` : `"${w.ssid}" (BSSID: ${w.bssid})`).join(', ')
           : 'chưa có mạng Wifi nào được cấu hình';
+        let details = '';
+        if (minDistance !== null) {
+          details = ` Bạn hiện cách vị trí "${closestLocationName}" khoảng ${Math.round(minDistance)}m (vượt quá bán kính cho phép ${closestLocationRadius}m).`;
+        }
         throw new ValidationError(
-          `Yêu cầu vị trí GPS hoặc mạng Wifi hợp lệ. ` +
+          `Yêu cầu vị trí GPS hoặc mạng Wifi hợp lệ.${details} ` +
           `Vị trí hợp lệ: ${locationList}. Mạng Wifi hợp lệ: ${wifiList}`
         );
       }
@@ -320,7 +341,10 @@ export class AttendanceUsecase {
     const clientTimeMoment = moment(checkoutTime).utcOffset('+07:00');
 
     if (clientTimeMoment.isBefore(checkoutFromTime) || clientTimeMoment.isAfter(checkoutToTime)) {
-      throw new ValidationError('Không nằm trong khung giờ được phép check-out ca này');
+      const hasNote = input.note && input.note.trim().length > 0;
+      if (!hasNote) {
+        throw new ValidationError('Không nằm trong khung giờ được phép check-out ca này. Vui lòng nhập ghi chú (lý do) để thực hiện check-out.');
+      }
     }
 
     // 4. Xác thực vị trí (GPS) và/hoặc mạng (Wifi)
@@ -332,8 +356,15 @@ export class AttendanceUsecase {
     let distanceM: number | null = null;
     let validationError: string | null = null;
 
+    let allowedLocations: { name: string; radius_m: number }[] = [];
+    let allowedWifis: { ssid: string; bssid: string | null; match_mode: number }[] = [];
+
     if (!isOffline) {
       const method = shift.attendanceMethod;
+
+      let minDistance: number | null = null;
+      let closestLocationName: string = '';
+      let closestLocationRadius: number = 0;
 
       // Xác thực GPS
       if (method === 'gps' || method === 'gps_wifi' || (method as string) === 'gps_or_wifi') {
@@ -350,8 +381,15 @@ export class AttendanceUsecase {
           [employee.companyId, employee.id, employee.branchId]
         );
 
+        allowedLocations = locRes.rows.map(r => ({ name: r.name, radius_m: r.radius_m }));
+
         for (const loc of locRes.rows) {
           const dist = haversineDistance(input.lat, input.lng, parseFloat(loc.lat), parseFloat(loc.lng));
+          if (minDistance === null || dist < minDistance) {
+            minDistance = dist;
+            closestLocationName = loc.name;
+            closestLocationRadius = loc.radius_m;
+          }
           if (dist <= loc.radius_m) {
             gpsValid = true;
             matchedLocationId = Number(loc.id);
@@ -376,6 +414,8 @@ export class AttendanceUsecase {
           [employee.companyId, employee.branchId]
         );
 
+        allowedWifis = wifiRes.rows.map(r => ({ ssid: r.ssid, bssid: r.bssid, match_mode: r.match_mode }));
+
         for (const wifi of wifiRes.rows) {
           if (wifi.match_mode === 1) { // SSID
             if (input.wifiSsid === wifi.ssid) {
@@ -395,16 +435,52 @@ export class AttendanceUsecase {
 
       // Kiểm tra xem có hợp lệ theo phương thức cấu hình ca không
       if (method === 'gps' && !gpsValid) {
-        throw new ValidationError('Bạn không nằm trong vị trí chấm công cho phép');
+        const locationList = allowedLocations.length > 0
+          ? allowedLocations.map(l => `"${l.name}" (bán kính ${l.radius_m}m)`).join(', ')
+          : 'chưa có vị trí nào được cấu hình';
+        let details = '';
+        if (minDistance !== null) {
+          details = ` Bạn hiện cách vị trí "${closestLocationName}" khoảng ${Math.round(minDistance)}m (vượt quá bán kính cho phép ${closestLocationRadius}m).`;
+        }
+        throw new ValidationError(`Bạn không nằm trong vị trí chấm công cho phép.${details} Các vị trí hợp lệ: ${locationList}`);
       }
       if (method === 'wifi' && !wifiValid) {
-        throw new ValidationError('Bạn không kết nối đúng mạng Wifi được cấu hình');
+        const wifiList = allowedWifis.length > 0
+          ? allowedWifis.map(w => w.match_mode === 1 ? `"${w.ssid}"` : `"${w.ssid}" (BSSID: ${w.bssid})`).join(', ')
+          : 'chưa có mạng Wifi nào được cấu hình';
+        throw new ValidationError(`Bạn không kết nối đúng mạng Wifi được cấu hình. Các mạng hợp lệ: ${wifiList}`);
       }
       if (method === 'gps_wifi' && (!gpsValid || !wifiValid)) {
-        throw new ValidationError('Yêu cầu cả vị trí GPS và mạng Wifi đều phải hợp lệ');
+        const locationList = allowedLocations.length > 0
+          ? allowedLocations.map(l => `"${l.name}" (bán kính ${l.radius_m}m)`).join(', ')
+          : 'chưa có vị trí nào được cấu hình';
+        const wifiList = allowedWifis.length > 0
+          ? allowedWifis.map(w => w.match_mode === 1 ? `"${w.ssid}"` : `"${w.ssid}" (BSSID: ${w.bssid})`).join(', ')
+          : 'chưa có mạng Wifi nào được cấu hình';
+        let details = '';
+        if (!gpsValid && minDistance !== null) {
+          details = ` Bạn hiện cách vị trí "${closestLocationName}" khoảng ${Math.round(minDistance)}m (vượt quá bán kính cho phép ${closestLocationRadius}m).`;
+        }
+        throw new ValidationError(
+          `Yêu cầu cả vị trí GPS và mạng Wifi đều phải hợp lệ.${details} ` +
+          `Vị trí hợp lệ: ${locationList}. Mạng Wifi hợp lệ: ${wifiList}`
+        );
       }
       if ((method as string) === 'gps_or_wifi' && !gpsValid && !wifiValid) {
-        throw new ValidationError('Yêu cầu vị trí GPS hoặc mạng Wifi hợp lệ');
+        const locationList = allowedLocations.length > 0
+          ? allowedLocations.map(l => `"${l.name}" (bán kính ${l.radius_m}m)`).join(', ')
+          : 'chưa có vị trí nào được cấu hình';
+        const wifiList = allowedWifis.length > 0
+          ? allowedWifis.map(w => w.match_mode === 1 ? `"${w.ssid}"` : `"${w.ssid}" (BSSID: ${w.bssid})`).join(', ')
+          : 'chưa có mạng Wifi nào được cấu hình';
+        let details = '';
+        if (minDistance !== null) {
+          details = ` Bạn hiện cách vị trí "${closestLocationName}" khoảng ${Math.round(minDistance)}m (vượt quá bán kính cho phép ${closestLocationRadius}m).`;
+        }
+        throw new ValidationError(
+          `Yêu cầu vị trí GPS hoặc mạng Wifi hợp lệ.${details} ` +
+          `Vị trí hợp lệ: ${locationList}. Mạng Wifi hợp lệ: ${wifiList}`
+        );
       }
     } else {
       // Offline checkout: Yêu cầu phải có ảnh chụp
@@ -445,7 +521,8 @@ export class AttendanceUsecase {
     const checkinOffline = record.source === 'offline';
     const checkoutOffline = isOffline;
     const isRecordOffline = checkinOffline || checkoutOffline;
-    const finalApprovalStatus = isRecordOffline ? 'pending' : 'approved';
+    const isBypassedWindow = clientTimeMoment.isBefore(checkoutFromTime) || clientTimeMoment.isAfter(checkoutToTime);
+    const finalApprovalStatus = (isRecordOffline || isBypassedWindow) ? 'pending' : 'approved';
     const workCredit = (finalApprovalStatus === 'approved') ? shift.workCredit : 0.0;
 
     // 9. Cập nhật bản ghi công
