@@ -1,4 +1,5 @@
 import { Shift } from '../../domain/entities';
+import { toVNTime } from '../../../../shared/utils/datetime';
 
 export interface ShiftDto {
   id: number;
@@ -48,7 +49,7 @@ export function shiftToDto(entity: Shift): ShiftDto {
     lateThresholdMin: entity.lateThresholdMin,
     earlyThresholdMin: entity.earlyThresholdMin,
     workCredit: entity.workCredit,
-    createdAt: entity.createdAt.toISOString(),
+    createdAt: toVNTime(entity.createdAt),
   };
 }
 

@@ -44,9 +44,29 @@ export class ShiftAssignmentUsecase {
     return entities.map(shiftAssignmentToDto);
   }
 
+  async getByCompany(companyId: number): Promise<ShiftAssignmentDto[]> {
+    const entities = await this.assignmentRepo.findByCompanyId(companyId);
+    return entities.map(shiftAssignmentToDto);
+  }
+
   async getEffective(employeeId: number, date: string): Promise<ShiftAssignmentDto[]> {
     const entities = await this.assignmentRepo.findEffective(employeeId, date);
     return entities.map(shiftAssignmentToDto);
+  }
+
+  async update(id: number, input: CreateShiftAssignmentDto): Promise<ShiftAssignmentDto> {
+    if (!input.shiftId || !input.scopeType || !input.companyId) {
+      throw new ValidationError('shiftId, scopeType, companyId are required');
+    }
+    if (input.scopeType === 'branch' && !input.branchId) throw new ValidationError('branchId required for branch scope');
+    if (input.scopeType === 'department' && !input.departmentId) throw new ValidationError('departmentId required for department scope');
+    if (input.scopeType === 'employee' && !input.employeeId) throw new ValidationError('employeeId required for employee scope');
+
+    const existing = await this.assignmentRepo.findById(id);
+    if (!existing) throw new NotFoundError('Shift assignment not found');
+
+    const entity = await this.assignmentRepo.update(id, input);
+    return shiftAssignmentToDto(entity);
   }
 
   async delete(id: number): Promise<void> {

@@ -1,4 +1,5 @@
 import { Company } from '../../domain/entities';
+import { toVNTime } from '../../../../shared/utils/datetime';
 
 export interface CompanyDto {
   id: number;
@@ -14,7 +15,7 @@ export function companyToDto(entity: Company): CompanyDto {
     name: entity.name,
     code: entity.code,
     timezone: entity.timezone,
-    createdAt: entity.createdAt.toISOString(),
+    createdAt: toVNTime(entity.createdAt),
   };
 }
 

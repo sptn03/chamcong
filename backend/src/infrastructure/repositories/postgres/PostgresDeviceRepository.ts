@@ -144,7 +144,7 @@ export class PostgresDeviceRepository implements IDeviceRepository {
       `UPDATE devices 
        SET status = $1, 
            reviewed_by = $2, 
-           reviewed_at = CASE WHEN $1 IN (2, 3) THEN NOW() ELSE NULL END,
+           reviewed_at = CASE WHEN $1::smallint IN (2, 3) THEN NOW() ELSE NULL END,
            rejection_reason = $3,
            updated_at = NOW() 
        WHERE id = $4`,

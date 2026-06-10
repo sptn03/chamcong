@@ -1,4 +1,5 @@
 import { Location } from '../../domain/entities';
+import { toVNTime } from '../../../../shared/utils/datetime';
 
 export interface LocationDto {
   id: number;
@@ -24,7 +25,7 @@ export function locationToDto(entity: Location): LocationDto {
     lat: entity.lat,
     lng: entity.lng,
     radiusM: entity.radiusM,
-    createdAt: entity.createdAt.toISOString(),
+    createdAt: toVNTime(entity.createdAt),
   };
 }
 

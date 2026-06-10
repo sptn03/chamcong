@@ -1,4 +1,5 @@
 import { Branch } from '../../domain/entities';
+import { toVNTime } from '../../../../shared/utils/datetime';
 
 export interface BranchDto {
   id: number;
@@ -14,7 +15,7 @@ export function branchToDto(entity: Branch): BranchDto {
     companyId: entity.companyId,
     name: entity.name,
     address: entity.address,
-    createdAt: entity.createdAt.toISOString(),
+    createdAt: toVNTime(entity.createdAt),
   };
 }
 

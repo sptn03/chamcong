@@ -1,4 +1,5 @@
 import { Employee } from '../../domain/entities';
+import { toVNTime } from '../../../../shared/utils/datetime';
 
 export interface EmployeeDto {
   id: number;
@@ -32,7 +33,7 @@ export function employeeToDto(entity: Employee): EmployeeDto {
     email: entity.email,
     role: entity.role,
     isHunonic: entity.isHunonic,
-    createdAt: entity.createdAt.toISOString(),
+    createdAt: toVNTime(entity.createdAt),
   };
 }
 

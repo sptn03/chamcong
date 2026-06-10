@@ -1,4 +1,5 @@
 import { Wifi } from '../../domain/entities';
+import { toVNTime } from '../../../../shared/utils/datetime';
 
 export interface WifiDto {
   id: number;
@@ -20,7 +21,7 @@ export function wifiToDto(entity: Wifi): WifiDto {
     ssid: entity.ssid,
     bssid: entity.bssid,
     matchMode: entity.matchMode,
-    createdAt: entity.createdAt.toISOString(),
+    createdAt: toVNTime(entity.createdAt),
   };
 }
 

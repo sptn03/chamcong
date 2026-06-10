@@ -1,4 +1,5 @@
 import { AttendanceRecord, AttendanceEvidence } from '../../domain/entities';
+import { toVNTime, toVNTimeNullable } from '../../../../shared/utils/datetime';
 
 export interface AttendanceRecordDto {
   id: number;
@@ -31,8 +32,8 @@ export function attendanceRecordToDto(record: AttendanceRecord): AttendanceRecor
     departmentId: record.departmentId,
     shiftId: record.shiftId,
     workDate: record.workDate,
-    checkinAt: record.checkinAt?.toISOString() ?? null,
-    checkoutAt: record.checkoutAt?.toISOString() ?? null,
+    checkinAt: toVNTimeNullable(record.checkinAt),
+    checkoutAt: toVNTimeNullable(record.checkoutAt),
     source: record.source,
     approvalStatus: record.approvalStatus,
     workStatus: record.workStatus,
@@ -40,7 +41,7 @@ export function attendanceRecordToDto(record: AttendanceRecord): AttendanceRecor
     earlyMin: record.earlyMin,
     actualWorkMinutes: record.actualWorkMinutes,
     workCredit: record.workCredit,
-    createdAt: record.createdAt.toISOString(),
+    createdAt: toVNTime(record.createdAt),
   };
 }
 
@@ -71,8 +72,8 @@ export function evidenceToDto(ev: AttendanceEvidence): AttendanceEvidenceDto {
     attendanceRecordId: ev.attendanceRecordId,
     punchType: ev.punchType,
     deviceId: ev.deviceId,
-    clientTime: ev.clientTime.toISOString(),
-    serverTime: ev.serverTime.toISOString(),
+    clientTime: toVNTime(ev.clientTime),
+    serverTime: toVNTime(ev.serverTime),
     lat: ev.lat,
     lng: ev.lng,
     accuracyM: ev.accuracyM,
@@ -82,7 +83,7 @@ export function evidenceToDto(ev: AttendanceEvidence): AttendanceEvidenceDto {
     note: ev.note,
     gpsValid: ev.gpsValid,
     wifiValid: ev.wifiValid,
-    createdAt: ev.createdAt.toISOString(),
+    createdAt: toVNTime(ev.createdAt),
   };
 }
 
@@ -110,7 +111,7 @@ export interface CheckinDto {
   photoPath?: string;
   note?: string;
   deviceId?: number;
-  clientTime: string;
+  clientTime?: string;
 }
 
 export interface CheckoutDto {
@@ -123,5 +124,5 @@ export interface CheckoutDto {
   photoPath?: string;
   note?: string;
   deviceId?: number;
-  clientTime: string;
+  clientTime?: string;
 }

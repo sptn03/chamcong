@@ -37,12 +37,22 @@ function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
   return R * c;
 }
 
-function getMomentFromInterval(workDate: string, intervalStr: string): moment.Moment {
-  const parts = intervalStr.split(':');
-  const hours = parseInt(parts[0] || '0', 10);
-  const minutes = parseInt(parts[1] || '0', 10);
-  const seconds = parseInt(parts[2] || '0', 10);
-  
+function getMomentFromInterval(workDate: string, intervalValue: string | Record<string, number>): moment.Moment {
+  let hours = 0, minutes = 0, seconds = 0;
+
+  if (typeof intervalValue === 'string') {
+    // HH:MM:SS string format
+    const parts = intervalValue.split(':');
+    hours = parseInt(parts[0] || '0', 10);
+    minutes = parseInt(parts[1] || '0', 10);
+    seconds = parseInt(parts[2] || '0', 10);
+  } else if (intervalValue && typeof intervalValue === 'object') {
+    // PostgresInterval object: { hours, minutes, seconds }
+    hours = (intervalValue as any).hours || 0;
+    minutes = (intervalValue as any).minutes || 0;
+    seconds = (intervalValue as any).seconds || 0;
+  }
+
   return moment(workDate, 'YYYY-MM-DD')
     .utcOffset('+07:00')
     .startOf('day')
@@ -77,9 +87,11 @@ export class AttendanceUsecase {
       throw new ValidationError('Ca làm việc này không hoạt động vào ngày này trong tuần');
     }
 
+    console.log('weekdayBit', weekdayBit, 'shift.weekdays', shift.weekdays);
+    console.log('input', input.employeeId, 'input.workDate', input.workDate);
     // 4. Kiểm tra gán ca
     const effectiveAssignments = await this.shiftAssignmentRepo.findEffective(input.employeeId, input.workDate);
-    const isAssigned = effectiveAssignments.some(sa => sa.shiftId === input.shiftId);
+    const isAssigned = effectiveAssignments.some(sa => Number(sa.shiftId) === Number(input.shiftId));
     if (!isAssigned) {
       throw new ValidationError('Nhân viên không được gán ca làm việc này trong ngày hôm nay');
     }
@@ -87,7 +99,12 @@ export class AttendanceUsecase {
     // 5. Kiểm tra khung giờ checkin
     const checkinFromTime = getMomentFromInterval(input.workDate, shift.checkinFrom);
     const checkinToTime = getMomentFromInterval(input.workDate, shift.checkinTo);
-    const clientTimeMoment = moment(input.clientTime).utcOffset('+07:00');
+    const checkinTime = input.clientTime ? new Date(input.clientTime) : new Date();
+    const clientTimeMoment = moment(checkinTime).utcOffset('+07:00');
+
+    console.log('clientTime (ICT):', clientTimeMoment.format('YYYY-MM-DD HH:mm:ss'));
+    console.log('checkinFrom (ICT):', checkinFromTime.format('YYYY-MM-DD HH:mm:ss'));
+    console.log('checkinTo   (ICT):', checkinToTime.format('YYYY-MM-DD HH:mm:ss'));
 
     if (clientTimeMoment.isBefore(checkinFromTime) || clientTimeMoment.isAfter(checkinToTime)) {
       throw new ValidationError('Không nằm trong khung giờ được phép check-in ca này');
@@ -98,7 +115,7 @@ export class AttendanceUsecase {
       input.employeeId,
       input.workDate,
     );
-    if (existingRecords.some(r => r.shiftId === input.shiftId && r.checkinAt)) {
+    if (existingRecords.some(r => Number(r.shiftId) === Number(input.shiftId) && r.checkinAt)) {
       throw new ValidationError('Đã check-in ca này rồi');
     }
 
@@ -110,6 +127,10 @@ export class AttendanceUsecase {
     let matchedWifiId: number | null = null;
     let distanceM: number | null = null;
     let validationError: string | null = null;
+
+    // Lưu danh sách để ghi vào thông báo lỗi nếu cần
+    let allowedLocations: { name: string; radius_m: number }[] = [];
+    let allowedWifis: { ssid: string; bssid: string | null; match_mode: number }[] = [];
 
     if (!isOffline) {
       const method = shift.attendanceMethod; // 'gps' | 'wifi' | 'gps_wifi' | 'gps_or_wifi'
@@ -128,6 +149,8 @@ export class AttendanceUsecase {
              AND (employee_id = $2 OR (employee_id IS NULL AND branch_id = $3))`,
           [employee.companyId, employee.id, employee.branchId]
         );
+
+        allowedLocations = locRes.rows.map(r => ({ name: r.name, radius_m: r.radius_m }));
 
         for (const loc of locRes.rows) {
           const dist = haversineDistance(input.lat, input.lng, parseFloat(loc.lat), parseFloat(loc.lng));
@@ -155,6 +178,8 @@ export class AttendanceUsecase {
           [employee.companyId, employee.branchId]
         );
 
+        allowedWifis = wifiRes.rows.map(r => ({ ssid: r.ssid, bssid: r.bssid, match_mode: r.match_mode }));
+
         for (const wifi of wifiRes.rows) {
           if (wifi.match_mode === 1) { // SSID
             if (input.wifiSsid === wifi.ssid) {
@@ -174,16 +199,40 @@ export class AttendanceUsecase {
 
       // Kiểm tra xem có hợp lệ theo phương thức cấu hình ca không
       if (method === 'gps' && !gpsValid) {
-        throw new ValidationError('Bạn không nằm trong vị trí chấm công cho phép');
+        const locationList = allowedLocations.length > 0
+          ? allowedLocations.map(l => `"${l.name}" (bán kính ${l.radius_m}m)`).join(', ')
+          : 'chưa có vị trí nào được cấu hình';
+        throw new ValidationError(`Bạn không nằm trong vị trí chấm công cho phép. Các vị trí hợp lệ: ${locationList}`);
       }
       if (method === 'wifi' && !wifiValid) {
-        throw new ValidationError('Bạn không kết nối đúng mạng Wifi được cấu hình');
+        const wifiList = allowedWifis.length > 0
+          ? allowedWifis.map(w => w.match_mode === 1 ? `"${w.ssid}"` : `"${w.ssid}" (BSSID: ${w.bssid})`).join(', ')
+          : 'chưa có mạng Wifi nào được cấu hình';
+        throw new ValidationError(`Bạn không kết nối đúng mạng Wifi được cấu hình. Các mạng hợp lệ: ${wifiList}`);
       }
       if (method === 'gps_wifi' && (!gpsValid || !wifiValid)) {
-        throw new ValidationError('Yêu cầu cả vị trí GPS và mạng Wifi đều phải hợp lệ');
+        const locationList = allowedLocations.length > 0
+          ? allowedLocations.map(l => `"${l.name}" (bán kính ${l.radius_m}m)`).join(', ')
+          : 'chưa có vị trí nào được cấu hình';
+        const wifiList = allowedWifis.length > 0
+          ? allowedWifis.map(w => w.match_mode === 1 ? `"${w.ssid}"` : `"${w.ssid}" (BSSID: ${w.bssid})`).join(', ')
+          : 'chưa có mạng Wifi nào được cấu hình';
+        throw new ValidationError(
+          `Yêu cầu cả vị trí GPS và mạng Wifi đều phải hợp lệ. ` +
+          `Vị trí hợp lệ: ${locationList}. Mạng Wifi hợp lệ: ${wifiList}`
+        );
       }
       if ((method as string) === 'gps_or_wifi' && !gpsValid && !wifiValid) {
-        throw new ValidationError('Yêu cầu vị trí GPS hoặc mạng Wifi hợp lệ');
+        const locationList = allowedLocations.length > 0
+          ? allowedLocations.map(l => `"${l.name}" (bán kính ${l.radius_m}m)`).join(', ')
+          : 'chưa có vị trí nào được cấu hình';
+        const wifiList = allowedWifis.length > 0
+          ? allowedWifis.map(w => w.match_mode === 1 ? `"${w.ssid}"` : `"${w.ssid}" (BSSID: ${w.bssid})`).join(', ')
+          : 'chưa có mạng Wifi nào được cấu hình';
+        throw new ValidationError(
+          `Yêu cầu vị trí GPS hoặc mạng Wifi hợp lệ. ` +
+          `Vị trí hợp lệ: ${locationList}. Mạng Wifi hợp lệ: ${wifiList}`
+        );
       }
     } else {
       // Offline check-in: Yêu cầu phải có ảnh chụp
@@ -213,7 +262,7 @@ export class AttendanceUsecase {
       departmentId: employee.departmentId,
       shiftId: input.shiftId,
       workDate: input.workDate,
-      checkinAt: new Date(input.clientTime),
+      checkinAt: checkinTime,
       source: isOffline ? 'offline' : 'online',
     } as CreateAttendanceRecordInput);
 
@@ -231,7 +280,7 @@ export class AttendanceUsecase {
       attendanceRecordId: record.id,
       punchType: 'in',
       deviceId: input.deviceId,
-      clientTime: new Date(input.clientTime),
+      clientTime: checkinTime,
       lat: input.lat,
       lng: input.lng,
       accuracyM: input.accuracyM,
@@ -263,10 +312,12 @@ export class AttendanceUsecase {
     const employee = await this.employeeRepo.findById(record.employeeId);
     if (!employee) throw new NotFoundError('Không tìm thấy nhân viên');
 
+    const checkoutTime = input.clientTime ? new Date(input.clientTime) : new Date();
+
     // 3. Kiểm tra khung giờ checkout
     const checkoutFromTime = getMomentFromInterval(record.workDate, shift.checkoutFrom);
     const checkoutToTime = getMomentFromInterval(record.workDate, shift.checkoutTo);
-    const clientTimeMoment = moment(input.clientTime).utcOffset('+07:00');
+    const clientTimeMoment = moment(checkoutTime).utcOffset('+07:00');
 
     if (clientTimeMoment.isBefore(checkoutFromTime) || clientTimeMoment.isAfter(checkoutToTime)) {
       throw new ValidationError('Không nằm trong khung giờ được phép check-out ca này');
@@ -385,7 +436,6 @@ export class AttendanceUsecase {
 
     // 7. Tính toán actualWorkMinutes
     const checkinTime = record.checkinAt;
-    const checkoutTime = new Date(input.clientTime);
     let actualWorkMinutes = 0;
     if (checkinTime) {
       actualWorkMinutes = Math.max(0, Math.floor((checkoutTime.getTime() - checkinTime.getTime()) / 60000));

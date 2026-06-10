@@ -6,6 +6,7 @@ export function createShiftAssignmentRouter(controller: ShiftAssignmentControlle
 
   router.get('/', controller.getAll);
   router.post('/create', controller.create);
+  router.post('/update', controller.update);
   router.post('/delete', controller.delete);
 
   return router;

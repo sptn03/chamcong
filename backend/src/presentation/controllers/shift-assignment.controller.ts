@@ -16,10 +16,14 @@ export class ShiftAssignmentController {
     const employeeId = req.query.employeeId ? parseInt(req.query.employeeId as string, 10) : (req.activeEmployeeId || undefined);
     const departmentId = req.query.departmentId ? parseInt(req.query.departmentId as string, 10) : undefined;
     const branchId = req.query.branchId ? parseInt(req.query.branchId as string, 10) : undefined;
+    const companyId = req.query.companyId ? parseInt(req.query.companyId as string, 10) : undefined;
     const date = req.query.date as string | undefined;
 
     if (id) {
       const result = await this.assignUsecase.getById(id);
+      res.json(ok(result));
+    } else if (companyId) {
+      const result = await this.assignUsecase.getByCompany(companyId);
       res.json(ok(result));
     } else if (employeeId && date) {
       // Tra cứu ca hiệu lực cho nhân viên theo ngày
@@ -46,6 +50,12 @@ export class ShiftAssignmentController {
   create = asyncHandler(async (req: Request, res: Response) => {
     const result = await this.assignUsecase.create(req.body);
     res.status(201).json(created('Gán ca thành công', result));
+  });
+
+  /** POST /api/shift-assignments/update - Cập nhật gán ca */
+  update = asyncHandler(async (req: Request, res: Response) => {
+    const result = await this.assignUsecase.update(req.body.id, req.body);
+    res.json(ok(result, 'Cập nhật gán ca thành công'));
   });
 
   /** POST /api/shift-assignments/delete - Xóa gán ca */

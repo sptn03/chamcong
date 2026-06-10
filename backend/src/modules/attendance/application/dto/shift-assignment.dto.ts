@@ -1,4 +1,5 @@
 import { ShiftAssignment } from '../../domain/entities';
+import { toVNTime } from '../../../../shared/utils/datetime';
 
 export interface ShiftAssignmentDto {
   id: number;
@@ -24,7 +25,7 @@ export function shiftAssignmentToDto(entity: ShiftAssignment): ShiftAssignmentDt
     employeeId: entity.employeeId,
     startsOn: entity.startsOn,
     endsOn: entity.endsOn,
-    createdAt: entity.createdAt.toISOString(),
+    createdAt: toVNTime(entity.createdAt),
   };
 }
 

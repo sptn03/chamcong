@@ -95,6 +95,14 @@ export class PostgresShiftAssignmentRepository implements IShiftAssignmentReposi
     return result.rows.map(rowToEntity);
   }
 
+  async findByCompanyId(companyId: number): Promise<ShiftAssignment[]> {
+    const result: QueryResult<ShiftAssignmentRow> = await this.pool.query(
+      'SELECT * FROM shift_assignments WHERE company_id = $1 AND deleted_at IS NULL ORDER BY created_at DESC',
+      [companyId],
+    );
+    return result.rows.map(rowToEntity);
+  }
+
   async create(input: CreateShiftAssignmentInput): Promise<ShiftAssignment> {
     const result: QueryResult<ShiftAssignmentRow> = await this.pool.query(
       `INSERT INTO shift_assignments
@@ -108,6 +116,22 @@ export class PostgresShiftAssignmentRepository implements IShiftAssignmentReposi
     return rowToEntity(result.rows[0]);
   }
 
+  async update(id: number, input: CreateShiftAssignmentInput): Promise<ShiftAssignment> {
+    const result: QueryResult<ShiftAssignmentRow> = await this.pool.query(
+      `UPDATE shift_assignments
+       SET shift_id = $2, scope_type = $3, company_id = $4, branch_id = $5, department_id = $6, employee_id = $7, starts_on = $8, ends_on = $9, updated_at = NOW()
+       WHERE id = $1 AND deleted_at IS NULL
+       RETURNING *`,
+      [id, input.shiftId, SCOPE_DB[input.scopeType], input.companyId,
+       input.branchId ?? null, input.departmentId ?? null, input.employeeId ?? null,
+       input.startsOn ?? null, input.endsOn ?? null],
+    );
+    if (!result.rows.length) {
+      throw new Error('Shift assignment not found');
+    }
+    return rowToEntity(result.rows[0]);
+  }
+
   async softDelete(id: number): Promise<void> {
     await this.pool.query(
       'UPDATE shift_assignments SET deleted_at = NOW() WHERE id = $1 AND deleted_at IS NULL',
@@ -117,18 +141,17 @@ export class PostgresShiftAssignmentRepository implements IShiftAssignmentReposi
 
   async findEffective(employeeId: number, date: string): Promise<ShiftAssignment[]> {
     const result: QueryResult<ShiftAssignmentRow> = await this.pool.query(
-      `SELECT DISTINCT ON (sa.id) sa.* FROM shift_assignments sa
+      `SELECT sa.* FROM shift_assignments sa
        LEFT JOIN employees e ON e.id = $1
        WHERE sa.deleted_at IS NULL
-         AND (sa.starts_on IS NULL OR sa.starts_on <= $2)
-         AND (sa.ends_on IS NULL OR sa.ends_on >= $2)
+         AND (sa.starts_on IS NULL OR sa.starts_on <= $2::date)
+         AND (sa.ends_on IS NULL OR sa.ends_on >= $2::date)
          AND (
            (sa.scope_type = $3 AND sa.employee_id = $1)
            OR (sa.scope_type = $4 AND sa.department_id = e.department_id)
            OR (sa.scope_type = $5 AND sa.branch_id = e.branch_id)
            OR (sa.scope_type = $6 AND sa.company_id = e.company_id)
-         )
-       ORDER BY sa.id, sa.scope_type`,
+         )`,
       [employeeId, date,
        SHIFT_ASSIGNMENT_SCOPE_EMPLOYEE, SHIFT_ASSIGNMENT_SCOPE_DEPARTMENT,
        SHIFT_ASSIGNMENT_SCOPE_BRANCH, SHIFT_ASSIGNMENT_SCOPE_COMPANY],

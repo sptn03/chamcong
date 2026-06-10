@@ -4,6 +4,7 @@ import { LoginDto, HunonicLoginDto, HunonicPasswordLoginDto, TokenDto, LogoutDto
 import { ValidationError, UnauthorizedError } from '../../../../shared/errors';
 import { HunonicService } from '../../../../infrastructure/services/HunonicService';
 import { EMPLOYEE_STATUS_ACTIVE } from '../../../../shared/constants';
+import { toVNTime } from '../../../../shared/utils/datetime';
 import { v4 as uuidv4 } from 'uuid';
 
 const PLATFORM_DB: Record<string, number> = { ios: 1, android: 2 };
@@ -55,16 +56,18 @@ export class AuthUsecase {
     // Đăng ký / cập nhật thiết bị
     const deviceId = await this.registerOrUpdateDevice(user.id, input);
 
-    // Tạo token
-    const session = await this.createSessionToken(user.id, deviceId);
-
-    // Lấy role từ company_memberships
+    // Kiểm tra role để quyết định multi-session
     const memResult = await this.pool.query(
       'SELECT role FROM company_memberships WHERE user_id = $1 AND deleted_at IS NULL LIMIT 1',
       [user.id],
     );
 
     const MEMBERSHIP_ROLE_MAP: Record<number, string> = { 1: 'admin', 2: 'employee' };
+    const role = memResult.rows.length > 0 ? MEMBERSHIP_ROLE_MAP[memResult.rows[0].role] ?? 'employee' : 'employee';
+    const isAdmin = role === 'admin';
+
+    // Tạo token
+    const session = await this.createSessionToken(user.id, deviceId, !isAdmin);
 
     return {
       ...session,
@@ -73,7 +76,7 @@ export class AuthUsecase {
         phone: input.phone,
         fullName: user.fullName,
         email: user.email,
-        role: memResult.rows.length > 0 ? MEMBERSHIP_ROLE_MAP[memResult.rows[0].role] ?? 'employee' : 'employee',
+        role,
       },
     };
   }
@@ -122,8 +125,15 @@ export class AuthUsecase {
     // Đăng ký / cập nhật thiết bị
     const deviceId = await this.registerOrUpdateDevice(userRow.id, input);
 
+    // Kiểm tra role — admin được multi-session
+    const row = await this.pool.query(
+      'SELECT role FROM company_memberships WHERE user_id = $1 AND deleted_at IS NULL LIMIT 1',
+      [userRow.id],
+    );
+    const isAdmin = row.rows.length > 0 && row.rows[0].role === 1;
+
     // Tái sử dụng hoặc tạo session token bằng chính hunonicToken
-    return this.getOrCreateHunonicSessionToken(userRow.id, deviceId, input.hunonicToken);
+    return this.getOrCreateHunonicSessionToken(userRow.id, deviceId, input.hunonicToken, !isAdmin);
   }
 
   /** Đăng nhập qua Hunonic bằng phone + mật khẩu (không cần token trước) */
@@ -185,15 +195,18 @@ export class AuthUsecase {
     // Đăng ký / cập nhật thiết bị
     const deviceId = await this.registerOrUpdateDevice(user!.id, input);
 
-    // Tái sử dụng hoặc tạo session token bằng chính hunonicToken
-    const session = await this.getOrCreateHunonicSessionToken(user!.id, deviceId, hunonicToken);
-
-    // Lấy role từ company_memberships
-    const memResult = await this.pool.query(
+    // Kiểm tra role — admin được multi-session
+    const roleRow = await this.pool.query(
       'SELECT role FROM company_memberships WHERE user_id = $1 AND deleted_at IS NULL LIMIT 1',
       [user!.id],
     );
+    const isAdmin = roleRow.rows.length > 0 && roleRow.rows[0].role === 1;
 
+    // Tái sử dụng hoặc tạo session token bằng chính hunonicToken
+    const session = await this.getOrCreateHunonicSessionToken(user!.id, deviceId, hunonicToken, !isAdmin);
+
+    // Lấy role từ company_memberships
+    const memResult = roleRow;
     const MEMBERSHIP_ROLE_MAP: Record<number, string> = { 1: 'admin', 2: 'employee' };
 
     return {
@@ -293,10 +306,11 @@ export class AuthUsecase {
     return newDevice.rows[0].id;
   }
 
-  /** Tạo hoặc lấy session token cho Hunonic bằng chính token Hunonic, deactive token cũ */
-  private async getOrCreateHunonicSessionToken(userId: number, deviceId: number | null, token: string): Promise<TokenDto> {
-    // Chỉ 1 phiên/user — deactive token cũ
-    await this.tokenRepo.deactivateAllForUser(userId);
+  /** Tạo hoặc lấy session token cho Hunonic bằng chính token Hunonic */
+  private async getOrCreateHunonicSessionToken(userId: number, deviceId: number | null, token: string, deactivateOthers = true): Promise<TokenDto> {
+    if (deactivateOthers) {
+      await this.tokenRepo.deactivateAllForUser(userId);
+    }
 
     const existing = await this.tokenRepo.findByToken(token, true);
 
@@ -315,14 +329,15 @@ export class AuthUsecase {
       token: entity.token,
       userId: entity.userId,
       deviceId: entity.deviceId,
-      createdAt: entity.createdAt instanceof Date ? entity.createdAt.toISOString() : new Date(entity.createdAt).toISOString(),
+      createdAt: toVNTime(entity.createdAt instanceof Date ? entity.createdAt : new Date(entity.createdAt)),
     };
   }
 
-  /** Tạo session token mới, deactive token cũ (1 phiên/user) */
-  private async createSessionToken(userId: number, deviceId: number | null): Promise<TokenDto> {
-    // Chỉ 1 phiên/user — deactive token cũ
-    await this.tokenRepo.deactivateAllForUser(userId);
+  /** Tạo session token mới, admin được multi-session */
+  private async createSessionToken(userId: number, deviceId: number | null, deactivateOthers = true): Promise<TokenDto> {
+    if (deactivateOthers) {
+      await this.tokenRepo.deactivateAllForUser(userId);
+    }
 
     const token = uuidv4();
     const entity = await this.tokenRepo.create({
@@ -335,7 +350,7 @@ export class AuthUsecase {
       token: entity.token,
       userId: entity.userId,
       deviceId: entity.deviceId,
-      createdAt: entity.createdAt.toISOString(),
+      createdAt: toVNTime(entity.createdAt),
     };
   }
 }

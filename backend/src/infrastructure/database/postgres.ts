@@ -1,5 +1,9 @@
-import { Pool, PoolClient, QueryResult } from 'pg';
+import { Pool, PoolClient, QueryResult, types } from 'pg';
 import { env } from './env';
+
+// Postgres DATE (OID 1082) mặc định bị parse thành JavaScript Date (UTC midnight)
+// → gây ra lỗi timezone khi hiển thị. Override để trả về string 'YYYY-MM-DD' thô.
+types.setTypeParser(1082, (val: string) => val);
 
 export const pgPool = new Pool({
   host: env.postgres.host,

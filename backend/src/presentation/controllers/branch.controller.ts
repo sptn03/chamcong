@@ -13,7 +13,7 @@ export class BranchController {
   getAll = asyncHandler(async (req: Request, res: Response) => {
     const id = req.query.id ? parseInt(req.query.id as string, 10) : undefined;
     const companyId = req.query.companyId ? parseInt(req.query.companyId as string, 10) : (req.activeCompanyId || undefined);
-
+    console.log('companyId', companyId);
     if (id) {
       const result = await this.branchUsecase.getById(id);
       res.json(ok(result));

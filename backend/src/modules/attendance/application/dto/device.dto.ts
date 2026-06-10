@@ -1,4 +1,5 @@
 import { Device } from '../../domain/entities';
+import { toVNTime, toVNTimeNullable } from '../../../../shared/utils/datetime';
 
 export interface DeviceDto {
   id: number;
@@ -32,13 +33,13 @@ export function deviceToDto(entity: Device): DeviceDto {
     appVersion: entity.appVersion,
     pushToken: entity.pushToken,
     status: entity.status,
-    lastLoginAt: entity.lastLoginAt?.toISOString() ?? null,
+    lastLoginAt: toVNTimeNullable(entity.lastLoginAt),
     ipAddress: entity.ipAddress,
     userAgent: entity.userAgent,
     reviewedBy: entity.reviewedBy,
-    reviewedAt: entity.reviewedAt?.toISOString() ?? null,
+    reviewedAt: toVNTimeNullable(entity.reviewedAt),
     rejectionReason: entity.rejectionReason,
-    createdAt: entity.createdAt.toISOString(),
+    createdAt: toVNTime(entity.createdAt),
   };
 }
 
