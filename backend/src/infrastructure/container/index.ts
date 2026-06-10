@@ -96,7 +96,7 @@ export function buildContainer(): AppContainer {
 
   // --- Usecases ---
   const authUsecase = new AuthUsecase(tokenRepo, userRepo, pool, hunonicService);
-  const companyUsecase = new CompanyUsecase(companyRepo);
+  const companyUsecase = new CompanyUsecase(companyRepo, pool);
   const branchUsecase = new BranchUsecase(branchRepo);
   const deptUsecase = new DepartmentUsecase(deptRepo);
   const employeeUsecase = new EmployeeUsecase(employeeRepo, pool);

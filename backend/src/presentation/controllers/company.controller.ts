@@ -23,7 +23,7 @@ export class CompanyController {
 
   /** POST /api/companies/create - Tạo công ty mới */
   create = asyncHandler(async (req: Request, res: Response) => {
-    const result = await this.companyUsecase.create(req.body);
+    const result = await this.companyUsecase.create(req.body, req.userId);
     res.status(201).json(created('Tạo công ty thành công', result));
   });
 

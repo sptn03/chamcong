@@ -24,8 +24,8 @@ export class DeviceUsecase {
     return entities.map(deviceToDto);
   }
 
-  async getAll(): Promise<DeviceDto[]> {
-    const entities = await this.deviceRepo.findAll();
+  async getAll(companyId?: number): Promise<DeviceDto[]> {
+    const entities = await this.deviceRepo.findAll(companyId);
     return entities.map(deviceToDto);
   }
 

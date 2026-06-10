@@ -16,7 +16,7 @@ export class ShiftAssignmentController {
     const employeeId = req.query.employeeId ? parseInt(req.query.employeeId as string, 10) : (req.activeEmployeeId || undefined);
     const departmentId = req.query.departmentId ? parseInt(req.query.departmentId as string, 10) : undefined;
     const branchId = req.query.branchId ? parseInt(req.query.branchId as string, 10) : undefined;
-    const companyId = req.query.companyId ? parseInt(req.query.companyId as string, 10) : undefined;
+    const companyId = req.query.companyId ? parseInt(req.query.companyId as string, 10) : (req.activeCompanyId || undefined);
     const date = req.query.date as string | undefined;
 
     if (id) {
@@ -48,6 +48,9 @@ export class ShiftAssignmentController {
 
   /** POST /api/shift-assignments/create - Gán ca */
   create = asyncHandler(async (req: Request, res: Response) => {
+    if (req.body && req.body.companyId === undefined && req.activeCompanyId) {
+      req.body.companyId = req.activeCompanyId;
+    }
     const result = await this.assignUsecase.create(req.body);
     res.status(201).json(created('Gán ca thành công', result));
   });

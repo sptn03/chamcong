@@ -31,6 +31,9 @@ export class WifiController {
 
   /** POST /api/wifis/create - Thêm wifi được phép chấm công */
   create = asyncHandler(async (req: Request, res: Response) => {
+    if (req.body && req.body.companyId === undefined && req.activeCompanyId) {
+      req.body.companyId = req.activeCompanyId;
+    }
     const result = await this.wifiUsecase.create(req.body);
     res.status(201).json(created('Thêm wifi thành công', result));
   });

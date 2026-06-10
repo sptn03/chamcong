@@ -9,10 +9,11 @@ import { ok, created } from '../helpers/response';
 export class DeviceController {
   constructor(private readonly deviceUsecase: DeviceUsecase) {}
 
-  /** GET /api/devices?[id=][&userId=] */
+  /** GET /api/devices?[id=][&userId=][&companyId=] */
   getAll = asyncHandler(async (req: Request, res: Response) => {
     const id = req.query.id ? parseInt(req.query.id as string, 10) : undefined;
     const userId = req.query.userId ? parseInt(req.query.userId as string, 10) : undefined;
+    const companyId = req.query.companyId ? parseInt(req.query.companyId as string, 10) : (req.activeCompanyId || undefined);
 
     if (id) {
       const result = await this.deviceUsecase.getById(id);
@@ -21,7 +22,7 @@ export class DeviceController {
       const result = await this.deviceUsecase.getByUser(userId);
       res.json(ok(result));
     } else {
-      const result = await this.deviceUsecase.getAll();
+      const result = await this.deviceUsecase.getAll(companyId);
       res.json(ok(result));
     }
   });

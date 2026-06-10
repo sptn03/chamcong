@@ -27,6 +27,9 @@ export class EmployeeController {
 
   /** POST /api/employees/create - Tạo nhân viên mới */
   create = asyncHandler(async (req: Request, res: Response) => {
+    if (req.body && req.body.companyId === undefined && req.activeCompanyId) {
+      req.body.companyId = req.activeCompanyId;
+    }
     const result = await this.employeeUsecase.create(req.body);
     res.status(201).json(created('Tạo nhân viên thành công', result));
   });

@@ -5,6 +5,10 @@ import { env } from './env';
 // → gây ra lỗi timezone khi hiển thị. Override để trả về string 'YYYY-MM-DD' thô.
 types.setTypeParser(1082, (val: string) => val);
 
+// Postgres INT8 / BIGINT (OID 20) mặc định bị parse thành string.
+// Override để tự động parse thành JavaScript number.
+types.setTypeParser(20, (val: string) => parseInt(val, 10));
+
 export const pgPool = new Pool({
   host: env.postgres.host,
   port: env.postgres.port,

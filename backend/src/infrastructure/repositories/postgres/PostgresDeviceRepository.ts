@@ -72,12 +72,26 @@ export class PostgresDeviceRepository implements IDeviceRepository {
     return result.rows.map(rowToEntity);
   }
 
-  async findAll(): Promise<Device[]> {
+  async findAll(companyId?: number): Promise<Device[]> {
+    let queryStr = `
+      SELECT d.*, u.full_name AS user_name 
+      FROM devices d 
+      LEFT JOIN users u ON u.id = d.user_id 
+    `;
+    const params: any[] = [];
+    if (companyId !== undefined) {
+      queryStr += `
+        WHERE d.user_id IN (
+          SELECT user_id FROM employees WHERE company_id = $1 AND deleted_at IS NULL
+        )
+      `;
+      params.push(companyId);
+    }
+    queryStr += ` ORDER BY d.last_login_at DESC NULLS LAST`;
+
     const result: QueryResult<DeviceRow & { user_name: string }> = await this.pool.query(
-      `SELECT d.*, u.full_name AS user_name 
-       FROM devices d 
-       LEFT JOIN users u ON u.id = d.user_id 
-       ORDER BY d.last_login_at DESC NULLS LAST`,
+      queryStr,
+      params,
     );
     return result.rows.map((row) => ({
       ...rowToEntity(row),

@@ -27,6 +27,9 @@ export class BranchController {
 
   /** POST /api/branches/create - Tạo chi nhánh mới */
   create = asyncHandler(async (req: Request, res: Response) => {
+    if (req.body && req.body.companyId === undefined && req.activeCompanyId) {
+      req.body.companyId = req.activeCompanyId;
+    }
     const result = await this.branchUsecase.create(req.body);
     res.status(201).json(created('Tạo chi nhánh thành công', result));
   });
