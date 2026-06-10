@@ -16,9 +16,15 @@ export class AuthController {
     res.json(ok(result, 'Đăng nhập thành công'));
   });
 
-  /** POST /api/auth/hunonic-login - Đăng nhập qua Hunonic */
+  /** POST /api/auth/hunonic-login - Đăng nhập qua Hunonic (token) */
   hunonicLogin = asyncHandler(async (req: Request, res: Response) => {
     const result = await this.authUsecase.hunonicLogin(req.body);
+    res.json(ok(result, 'Đăng nhập Hunonic thành công'));
+  });
+
+  /** POST /api/auth/hunonic-password-login - Đăng nhập Hunonic bằng phone + password */
+  hunonicPasswordLogin = asyncHandler(async (req: Request, res: Response) => {
+    const result = await this.authUsecase.hunonicPasswordLogin(req.body);
     res.json(ok(result, 'Đăng nhập Hunonic thành công'));
   });
 

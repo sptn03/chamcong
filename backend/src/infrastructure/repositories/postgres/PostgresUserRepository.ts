@@ -11,7 +11,6 @@ interface UserRow {
   birthday: string | null;
   gender: number | null;
   is_hunonic: boolean;
-  hunonic_sub: string | null;
   status: number;
   created_at: Date;
   updated_at: Date;
@@ -30,7 +29,6 @@ function rowToEntity(row: UserRow): User {
     birthday: row.birthday,
     gender: row.gender != null ? GENDER_TYPE_MAP[row.gender] ?? null : null,
     isHunonic: row.is_hunonic,
-    hunonicSub: row.hunonic_sub,
     status: USER_STATUS_MAP[row.status] as User['status'],
     createdAt: row.created_at,
     updatedAt: row.updated_at,

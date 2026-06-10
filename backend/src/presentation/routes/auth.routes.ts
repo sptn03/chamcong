@@ -9,6 +9,7 @@ export function createAuthRouter(controller: AuthController, authMiddleware: any
 
   router.post('/login', controller.login);
   router.post('/hunonic-login', controller.hunonicLogin);
+  router.post('/hunonic-password-login', controller.hunonicPasswordLogin);
   router.post('/logout', controller.logout);
   router.post('/switch-company', authMiddleware, controller.switchCompany);
 

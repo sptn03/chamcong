@@ -11,7 +11,9 @@ export interface EmployeeDto {
   status: string;
   fullName?: string;
   phone?: string;
+  email?: string;
   role?: number;
+  isHunonic?: boolean;
   createdAt: string;
 }
 
@@ -27,7 +29,9 @@ export function employeeToDto(entity: Employee): EmployeeDto {
     status: entity.status,
     fullName: entity.fullName,
     phone: entity.phone,
+    email: entity.email,
     role: entity.role,
+    isHunonic: entity.isHunonic,
     createdAt: entity.createdAt.toISOString(),
   };
 }
@@ -46,6 +50,7 @@ export interface CreateEmployeeDto {
   birthday?: string;
   gender?: number;
   role?: number;
+  isHunonic?: boolean;
 }
 
 export interface UpdateEmployeeDto {
@@ -60,5 +65,6 @@ export interface UpdateEmployeeDto {
   birthday?: string;
   gender?: number;
   role?: number;
+  isHunonic?: boolean;
 }
 

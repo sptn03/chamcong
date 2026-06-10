@@ -24,9 +24,16 @@ export class EmployeeUsecase {
 
     if (!userId) {
       // Kiểm tra SĐT trong bảng users
-      const existingUser = await this.pool.query('SELECT id FROM users WHERE phone = $1', [input.phone]);
+      const existingUser = await this.pool.query('SELECT id, email FROM users WHERE phone = $1', [input.phone]);
       if (existingUser.rows.length > 0) {
         userId = Number(existingUser.rows[0].id);
+        
+        // Cập nhật email mặc định nếu user đã tồn tại nhưng chưa có email
+        const existingEmail = existingUser.rows[0].email;
+        if (!existingEmail) {
+          const defaultEmail = `${input.phone}@hunonic.vn`;
+          await this.pool.query('UPDATE users SET email = $1 WHERE id = $2', [defaultEmail, userId]);
+        }
         
         // Kiểm tra xem user này đã là nhân viên của công ty này chưa
         const existingEmp = await this.employeeRepo.findByUserId(userId);
@@ -34,14 +41,26 @@ export class EmployeeUsecase {
           throw new ValidationError('Số điện thoại này đã được gán cho nhân viên khác trong công ty');
         }
       } else {
-        if (!input.password) {
+        if (!input.password && !input.isHunonic) {
           throw new ValidationError('Mật khẩu là bắt buộc khi tạo tài khoản mới');
         }
+        
+        // Gán email mặc định nếu không truyền lên
+        const email = input.email || `${input.phone}@hunonic.vn`;
+
         // Tạo user mới
         const userRes = await this.pool.query(
-          `INSERT INTO users (phone, email, pass, full_name, birthday, gender, status)
-           VALUES ($1, $2, crypt($3, gen_salt('bf')), $4, $5, $6, 1) RETURNING id`,
-          [input.phone, input.email || null, input.password, input.fullName, input.birthday || null, input.gender || 3]
+          `INSERT INTO users (phone, email, pass, full_name, birthday, gender, status, is_hunonic)
+           VALUES ($1, $2, CASE WHEN $3::text IS NOT NULL THEN crypt($3, gen_salt('bf')) ELSE NULL END, $4, $5, $6, 1, $7) RETURNING id`,
+          [
+            input.phone,
+            email,
+            input.password || null,
+            input.fullName,
+            input.birthday || null,
+            input.gender || 3,
+            input.isHunonic || false
+          ]
         );
         userId = Number(userRes.rows[0].id);
       }
@@ -110,11 +129,33 @@ export class EmployeeUsecase {
     const userValues: any[] = [];
     let paramIndex = 1;
 
+    const userResult = await this.pool.query('SELECT phone, email FROM users WHERE id = $1', [existing.userId]);
+    const userRow = userResult.rows[0] || {};
+    const currentPhone = userRow.phone || '';
+    const currentEmail = userRow.email || '';
+
+    let finalEmail = input.email;
+    const newPhone = input.phone;
+
+    // Nếu thay đổi số điện thoại, và email hiện tại đang trống hoặc là email mặc định cũ, hãy tự động đồng bộ email mặc định mới
+    if (newPhone !== undefined && newPhone !== currentPhone) {
+      const isOldDefault = !currentEmail || currentEmail === `${currentPhone}@hunonic.vn`;
+      if (isOldDefault && !input.email) {
+        finalEmail = `${newPhone}@hunonic.vn`;
+      }
+    }
+
+    // Nếu email được truyền lên nhưng là chuỗi trống
+    if (finalEmail === '') {
+      finalEmail = `${newPhone || currentPhone}@hunonic.vn`;
+    }
+
     if (input.fullName !== undefined) { userUpdates.push(`full_name = $${paramIndex++}`); userValues.push(input.fullName); }
     if (input.phone !== undefined) { userUpdates.push(`phone = $${paramIndex++}`); userValues.push(input.phone); }
-    if (input.email !== undefined) { userUpdates.push(`email = $${paramIndex++}`); userValues.push(input.email); }
+    if (finalEmail !== undefined) { userUpdates.push(`email = $${paramIndex++}`); userValues.push(finalEmail); }
     if (input.birthday !== undefined) { userUpdates.push(`birthday = $${paramIndex++}`); userValues.push(input.birthday); }
     if (input.gender !== undefined) { userUpdates.push(`gender = $${paramIndex++}`); userValues.push(input.gender); }
+    if (input.isHunonic !== undefined) { userUpdates.push(`is_hunonic = $${paramIndex++}`); userValues.push(input.isHunonic); }
     if (input.password !== undefined && input.password !== '') { 
       userUpdates.push(`pass = crypt($${paramIndex++}, gen_salt('bf'))`); 
       userValues.push(input.password); 

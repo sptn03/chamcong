@@ -27,6 +27,16 @@ export interface TokenDto {
   createdAt: string;
 }
 
+export interface HunonicPasswordLoginDto {
+  phone: string;
+  password: string;
+  deviceUid?: string;
+  deviceName?: string;
+  platform?: string;
+  osVersion?: string;
+  appVersion?: string;
+}
+
 export interface LogoutDto {
   token: string;
 }

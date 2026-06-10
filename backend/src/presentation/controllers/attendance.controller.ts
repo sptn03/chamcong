@@ -49,12 +49,18 @@ export class AttendanceController {
     if (req.activeEmployeeId && !req.body.employeeId) {
       req.body.employeeId = req.activeEmployeeId;
     }
+    if (req.deviceId && !req.body.deviceId) {
+      req.body.deviceId = req.deviceId;
+    }
     const result = await this.attendanceUsecase.checkin(req.body);
     res.status(201).json(created('Check-in thành công', result));
   });
 
   /** POST /api/attendance/checkout - Check-out */
   checkout = asyncHandler(async (req: Request, res: Response) => {
+    if (req.deviceId && !req.body.deviceId) {
+      req.body.deviceId = req.deviceId;
+    }
     const result = await this.attendanceUsecase.checkout(req.body);
     res.json(ok(result, 'Check-out thành công'));
   });

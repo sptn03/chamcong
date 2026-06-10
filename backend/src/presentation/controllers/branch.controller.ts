@@ -12,7 +12,7 @@ export class BranchController {
   /** GET /api/branches?[id=][&companyId=] - DS chi nhánh hoặc chi tiết */
   getAll = asyncHandler(async (req: Request, res: Response) => {
     const id = req.query.id ? parseInt(req.query.id as string, 10) : undefined;
-    const companyId = req.query.companyId ? parseInt(req.query.companyId as string, 10) : undefined;
+    const companyId = req.query.companyId ? parseInt(req.query.companyId as string, 10) : (req.activeCompanyId || undefined);
 
     if (id) {
       const result = await this.branchUsecase.getById(id);

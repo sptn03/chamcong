@@ -11,7 +11,9 @@ export interface Employee {
   status: EmployeeStatus;
   fullName?: string;
   phone?: string;
+  email?: string;
   role?: number;
+  isHunonic?: boolean;
   deletedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;

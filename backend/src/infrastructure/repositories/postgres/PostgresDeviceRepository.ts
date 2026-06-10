@@ -119,10 +119,19 @@ export class PostgresDeviceRepository implements IDeviceRepository {
       const deviceRes = await this.pool.query('SELECT user_id FROM devices WHERE id = $1', [id]);
       if (deviceRes.rows.length) {
         const userId = deviceRes.rows[0].user_id;
-        await this.pool.query(
-          `UPDATE devices SET status = $1, updated_at = NOW() WHERE user_id = $2 AND status = $3 AND id <> $4`,
+        // Revoke device cũ
+        const revoked = await this.pool.query(
+          `UPDATE devices SET status = $1, updated_at = NOW() WHERE user_id = $2 AND status = $3 AND id <> $4 RETURNING id`,
           [DEVICE_STATUS_REVOKED, userId, DEVICE_STATUS_APPROVED, id]
         );
+        // Deactive token của device bị revoked
+        if (revoked.rows.length > 0) {
+          const revokedIds = revoked.rows.map(r => r.id);
+          await this.pool.query(
+            `UPDATE tokens SET active = FALSE, updated_at = NOW() WHERE device_id = ANY($1::bigint[]) AND active = TRUE`,
+            [revokedIds]
+          );
+        }
       }
     }
 

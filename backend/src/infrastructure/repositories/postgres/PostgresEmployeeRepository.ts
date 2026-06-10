@@ -18,6 +18,8 @@ interface EmployeeRow {
   full_name?: string;
   user_phone?: string;
   membership_role?: number;
+  is_hunonic?: boolean;
+  email?: string;
 }
 
 const EMPLOYEE_STATUS_MAP: Record<number, string> = { 1: 'active', 2: 'locked' };
@@ -35,6 +37,8 @@ function rowToEntity(row: EmployeeRow): Employee {
     fullName: row.full_name,
     phone: row.user_phone,
     role: row.membership_role,
+    isHunonic: row.is_hunonic,
+    email: row.email,
     deletedAt: row.deleted_at,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -51,7 +55,7 @@ export class PostgresEmployeeRepository implements IEmployeeRepository {
 
   async findById(id: number): Promise<Employee | null> {
     const result: QueryResult<EmployeeRow> = await this.pool.query(
-      `SELECT e.*, u.full_name, u.phone AS user_phone, m.role AS membership_role 
+      `SELECT e.*, u.full_name, u.phone AS user_phone, u.email, u.is_hunonic, m.role AS membership_role 
        FROM employees e
        JOIN users u ON u.id = e.user_id
        LEFT JOIN company_memberships m ON m.employee_id = e.id AND m.deleted_at IS NULL
@@ -63,7 +67,7 @@ export class PostgresEmployeeRepository implements IEmployeeRepository {
 
   async findByUserId(userId: number): Promise<Employee[]> {
     const result: QueryResult<EmployeeRow> = await this.pool.query(
-      `SELECT e.*, u.full_name, u.phone AS user_phone, m.role AS membership_role 
+      `SELECT e.*, u.full_name, u.phone AS user_phone, u.email, u.is_hunonic, m.role AS membership_role 
        FROM employees e
        JOIN users u ON u.id = e.user_id
        LEFT JOIN company_memberships m ON m.employee_id = e.id AND m.deleted_at IS NULL
@@ -75,7 +79,7 @@ export class PostgresEmployeeRepository implements IEmployeeRepository {
 
   async findByCompanyId(companyId: number): Promise<Employee[]> {
     const result: QueryResult<EmployeeRow> = await this.pool.query(
-      `SELECT e.*, u.full_name, u.phone AS user_phone, m.role AS membership_role 
+      `SELECT e.*, u.full_name, u.phone AS user_phone, u.email, u.is_hunonic, m.role AS membership_role 
        FROM employees e
        JOIN users u ON u.id = e.user_id
        LEFT JOIN company_memberships m ON m.employee_id = e.id AND m.deleted_at IS NULL
@@ -88,7 +92,7 @@ export class PostgresEmployeeRepository implements IEmployeeRepository {
 
   async findByCode(companyId: number, employeeCode: string): Promise<Employee | null> {
     const result: QueryResult<EmployeeRow> = await this.pool.query(
-      `SELECT e.*, u.full_name, u.phone AS user_phone, m.role AS membership_role 
+      `SELECT e.*, u.full_name, u.phone AS user_phone, u.email, u.is_hunonic, m.role AS membership_role 
        FROM employees e
        JOIN users u ON u.id = e.user_id
        LEFT JOIN company_memberships m ON m.employee_id = e.id AND m.deleted_at IS NULL

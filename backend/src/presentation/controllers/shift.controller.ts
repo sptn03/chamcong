@@ -12,7 +12,7 @@ export class ShiftController {
   /** GET /api/shifts?[id=][&companyId=] */
   getAll = asyncHandler(async (req: Request, res: Response) => {
     const id = req.query.id ? parseInt(req.query.id as string, 10) : undefined;
-    const companyId = req.query.companyId ? parseInt(req.query.companyId as string, 10) : undefined;
+    const companyId = req.query.companyId ? parseInt(req.query.companyId as string, 10) : (req.activeCompanyId || undefined);
 
     if (id) {
       const result = await this.shiftUsecase.getById(id);

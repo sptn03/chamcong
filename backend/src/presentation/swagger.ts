@@ -551,35 +551,6 @@ const swaggerDefinition: swaggerJsdoc.Options['definition'] = {
           workCredit: { type: 'number' },
         },
       },
-      // --- Notification ---
-      NotificationDto: {
-        type: 'object',
-        properties: {
-          id: { type: 'integer', example: 1 },
-          companyId: { type: 'integer', nullable: true, example: 1 },
-          userId: { type: 'integer', example: 1 },
-          type: { type: 'string', example: 'approval' },
-          title: { type: 'string', example: 'Yêu cầu duyệt mới' },
-          body: { type: 'string', nullable: true },
-          dataJson: { type: 'object', nullable: true },
-          readAt: { type: 'string', nullable: true, format: 'date-time' },
-          createdAt: { type: 'string', format: 'date-time' },
-        },
-      },
-      MarkNotificationReadInput: {
-        type: 'object',
-        required: ['id'],
-        properties: {
-          id: { type: 'integer', example: 1 },
-        },
-      },
-      MarkAllNotificationReadInput: {
-        type: 'object',
-        required: ['userId'],
-        properties: {
-          userId: { type: 'integer', example: 1 },
-        },
-      },
       // --- Generic Wrappers ---
       SuccessResponse: {
         type: 'object',
@@ -1100,37 +1071,6 @@ const swaggerDefinition: swaggerJsdoc.Options['definition'] = {
         summary: 'Admin sửa bản ghi công (có audit log)',
         requestBody: { required: true, content: { 'application/json': { schema: { $ref: '#/components/schemas/EditAttendanceInput' } } } },
         responses: { '200': { description: 'Sửa công thành công' } },
-      },
-    },
-
-    // ==================== NOTIFICATIONS ====================
-    '/api/notifications': {
-      get: {
-        tags: ['Notifications'],
-        summary: 'Danh sách thông báo',
-        parameters: [
-          { name: 'token', in: 'query', required: true, schema: { type: 'string' } },
-          { name: 'id', in: 'query', schema: { type: 'integer' } },
-          { name: 'userId', in: 'query', required: true, schema: { type: 'integer' } },
-          { name: 'unread', in: 'query', schema: { type: 'string', enum: ['1'], description: 'Chỉ lấy chưa đọc' } },
-        ],
-        responses: { '200': { description: 'Danh sách thông báo' } },
-      },
-    },
-    '/api/notifications/read': {
-      post: {
-        tags: ['Notifications'],
-        summary: 'Đánh dấu đã đọc một thông báo',
-        requestBody: { required: true, content: { 'application/json': { schema: { $ref: '#/components/schemas/MarkNotificationReadInput' } } } },
-        responses: { '200': { description: 'Đã đánh dấu đã đọc' } },
-      },
-    },
-    '/api/notifications/read-all': {
-      post: {
-        tags: ['Notifications'],
-        summary: 'Đánh dấu tất cả đã đọc',
-        requestBody: { required: true, content: { 'application/json': { schema: { $ref: '#/components/schemas/MarkAllNotificationReadInput' } } } },
-        responses: { '200': { description: 'Đã đánh dấu tất cả đã đọc' } },
       },
     },
   },

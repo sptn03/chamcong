@@ -1,6 +1,6 @@
 import { Pool } from 'pg';
 import { ITokenRepository, IUserRepository } from '../../domain/repositories';
-import { LoginDto, HunonicLoginDto, TokenDto, LogoutDto } from '../dto';
+import { LoginDto, HunonicLoginDto, HunonicPasswordLoginDto, TokenDto, LogoutDto } from '../dto';
 import { ValidationError, UnauthorizedError } from '../../../../shared/errors';
 import { HunonicService } from '../../../../infrastructure/services/HunonicService';
 import { EMPLOYEE_STATUS_ACTIVE } from '../../../../shared/constants';
@@ -22,7 +22,7 @@ export class AuthUsecase {
     userId: number;
     deviceId: number | null;
     createdAt: string;
-    user: { id: number; phone: string; fullName: string; role: string };
+    user: { id: number; phone: string; fullName: string; role: string; email?: string | null };
   }> {
     if (!input.phone || !input.password) {
       throw new ValidationError('Số điện thoại và mật khẩu là bắt buộc');
@@ -72,6 +72,7 @@ export class AuthUsecase {
         id: user.id,
         phone: input.phone,
         fullName: user.fullName,
+        email: user.email,
         role: memResult.rows.length > 0 ? MEMBERSHIP_ROLE_MAP[memResult.rows[0].role] ?? 'employee' : 'employee',
       },
     };
@@ -125,6 +126,88 @@ export class AuthUsecase {
     return this.getOrCreateHunonicSessionToken(userRow.id, deviceId, input.hunonicToken);
   }
 
+  /** Đăng nhập qua Hunonic bằng phone + mật khẩu (không cần token trước) */
+  async hunonicPasswordLogin(input: HunonicPasswordLoginDto): Promise<TokenDto & {
+    user: { id: number; phone: string; fullName: string; role: string; email?: string | null };
+  }> {
+    if (!input.phone || !input.password) {
+      throw new ValidationError('Số điện thoại và mật khẩu là bắt buộc');
+    }
+
+    // Gọi API Hunonic để xác thực phone + password
+    const hunonicResult = await this.hunonicService.loginWithPassword(input.phone, input.password);
+    if (!hunonicResult) {
+      throw new UnauthorizedError('Sai số điện thoại hoặc mật khẩu Hunonic');
+    }
+
+    // Dùng token_id từ Hunonic làm session token
+    const hunonicToken = hunonicResult.tokenId;
+
+    // Tìm user trong DB, nếu chưa có thì tạo mới
+    let user = await this.userRepo.findByPhone(input.phone);
+
+    if (!user) {
+      // Tạo user mới từ thông tin Hunonic (nếu trống email thì lấy sđt@hunonic.vn)
+      const email = hunonicResult.email || `${hunonicResult.phone}@hunonic.vn`;
+      const newUser = await this.pool.query(
+        `INSERT INTO users (phone, email, full_name, is_hunonic, gender, status)
+         VALUES ($1, $2, $3, TRUE, $4, 1) RETURNING *`,
+        [
+          hunonicResult.phone,
+          email,
+          hunonicResult.name,
+          hunonicResult.gender ? 1 : null,
+        ],
+      );
+      user = {
+        id: newUser.rows[0].id,
+        phone: newUser.rows[0].phone,
+        email: newUser.rows[0].email,
+        fullName: newUser.rows[0].full_name,
+        status: newUser.rows[0].status === 1 ? 'active' : 'locked',
+        isHunonic: true,
+        birthday: newUser.rows[0].birthday || null,
+        gender: newUser.rows[0].gender || null,
+        passwordHash: newUser.rows[0].pass || null,
+      } as any;
+    } else {
+      if (user.status === 'locked') {
+        throw new UnauthorizedError('Tài khoản đã bị khóa');
+      }
+      // Cập nhật thông tin user từ Hunonic (đồng bộ)
+      await this.pool.query(
+        `UPDATE users SET is_hunonic = TRUE, full_name = $1 WHERE id = $2`,
+        [hunonicResult.name, user.id],
+      );
+      user.fullName = hunonicResult.name;
+    }
+
+    // Đăng ký / cập nhật thiết bị
+    const deviceId = await this.registerOrUpdateDevice(user!.id, input);
+
+    // Tái sử dụng hoặc tạo session token bằng chính hunonicToken
+    const session = await this.getOrCreateHunonicSessionToken(user!.id, deviceId, hunonicToken);
+
+    // Lấy role từ company_memberships
+    const memResult = await this.pool.query(
+      'SELECT role FROM company_memberships WHERE user_id = $1 AND deleted_at IS NULL LIMIT 1',
+      [user!.id],
+    );
+
+    const MEMBERSHIP_ROLE_MAP: Record<number, string> = { 1: 'admin', 2: 'employee' };
+
+    return {
+      ...session,
+      user: {
+        id: user!.id,
+        phone: input.phone,
+        fullName: user!.fullName,
+        email: user!.email,
+        role: memResult.rows.length > 0 ? MEMBERSHIP_ROLE_MAP[memResult.rows[0].role] ?? 'employee' : 'employee',
+      },
+    };
+  }
+
   /** Đăng xuất, vô hiệu token */
   async logout(input: LogoutDto): Promise<void> {
     const tokenEntity = await this.tokenRepo.findByToken(input.token);
@@ -169,28 +252,52 @@ export class AuthUsecase {
   private async registerOrUpdateDevice(userId: number, input: any): Promise<number | null> {
     if (!input.deviceUid || !input.platform) return null;
 
+    // Kiểm tra user đã có device approved nào chưa
+    const approvedCount = await this.pool.query(
+      'SELECT COUNT(*) AS cnt FROM devices WHERE user_id = $1 AND status = 2',
+      [userId],
+    );
+
     const existingDevice = await this.pool.query(
-      'SELECT id FROM devices WHERE user_id = $1 AND device_uid = $2',
+      'SELECT id, status FROM devices WHERE user_id = $1 AND device_uid = $2',
       [userId, input.deviceUid],
     );
 
     if (existingDevice.rows.length) {
       const deviceId = existingDevice.rows[0].id;
+      const status = existingDevice.rows[0].status;
+
+      if (status !== 2) {
+        throw new UnauthorizedError('Thiết bị chưa được xác thực. Vui lòng đợi Admin duyệt.');
+      }
+
       await this.pool.query('UPDATE devices SET last_login_at = NOW() WHERE id = $1', [deviceId]);
       return deviceId;
     }
 
+    // Device mới: kiểm tra nếu là device đầu tiên thì auto-approve
+    const isFirstDevice = Number(approvedCount.rows[0].cnt) === 0;
+    const status = isFirstDevice ? 2 : 1;
+
     const newDevice = await this.pool.query(
-      `INSERT INTO devices (user_id, device_uid, device_name, platform, os_version, app_version, last_login_at)
-       VALUES ($1, $2, $3, $4, $5, $6, NOW()) RETURNING id`,
+      `INSERT INTO devices (user_id, device_uid, device_name, platform, os_version, app_version, last_login_at, status)
+       VALUES ($1, $2, $3, $4, $5, $6, NOW(), $7) RETURNING id`,
       [userId, input.deviceUid, input.deviceName ?? null, PLATFORM_DB[input.platform] ?? input.platform,
-       input.osVersion ?? null, input.appVersion ?? null],
+       input.osVersion ?? null, input.appVersion ?? null, status],
     );
+
+    if (!isFirstDevice) {
+      throw new UnauthorizedError('Thiết bị mới cần được Admin duyệt trước khi sử dụng.');
+    }
+
     return newDevice.rows[0].id;
   }
 
-  /** Tạo hoặc lấy session token cho Hunonic bằng chính token Hunonic */
+  /** Tạo hoặc lấy session token cho Hunonic bằng chính token Hunonic, deactive token cũ */
   private async getOrCreateHunonicSessionToken(userId: number, deviceId: number | null, token: string): Promise<TokenDto> {
+    // Chỉ 1 phiên/user — deactive token cũ
+    await this.tokenRepo.deactivateAllForUser(userId);
+
     const existing = await this.tokenRepo.findByToken(token, true);
 
     let entity;
@@ -212,8 +319,11 @@ export class AuthUsecase {
     };
   }
 
-  /** Tạo session token mới */
+  /** Tạo session token mới, deactive token cũ (1 phiên/user) */
   private async createSessionToken(userId: number, deviceId: number | null): Promise<TokenDto> {
+    // Chỉ 1 phiên/user — deactive token cũ
+    await this.tokenRepo.deactivateAllForUser(userId);
+
     const token = uuidv4();
     const entity = await this.tokenRepo.create({
       userId,

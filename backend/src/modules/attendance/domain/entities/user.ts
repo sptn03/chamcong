@@ -9,7 +9,6 @@ export interface User {
   birthday: string | null;
   gender: string | null;
   isHunonic: boolean;
-  hunonicSub: string | null;
   status: UserStatus;
   createdAt: Date;
   updatedAt: Date;
@@ -23,15 +22,4 @@ export interface CreateUserInput {
   birthday?: string;
   gender?: string;
   isHunonic?: boolean;
-  hunonicSub?: string;
-}
-
-export interface UpdateUserInput {
-  email?: string;
-  passwordHash?: string;
-  fullName?: string;
-  birthday?: string;
-  gender?: string;
-  hunonicSub?: string;
-  status?: UserStatus;
 }

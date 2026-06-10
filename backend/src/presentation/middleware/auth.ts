@@ -8,6 +8,7 @@ declare global {
     interface Request {
       userId?: number;
       tokenId?: number;
+      deviceId?: number | null;
       activeCompanyId?: number | null;
       activeEmployeeId?: number | null;
       tokenString?: string;
@@ -49,6 +50,7 @@ export function createAuthMiddleware(tokenRepo: ITokenRepository) {
 
       req.userId = tokenEntity.userId;
       req.tokenId = tokenEntity.id;
+      req.deviceId = tokenEntity.deviceId;
       req.activeCompanyId = tokenEntity.activeCompanyId;
       req.activeEmployeeId = tokenEntity.activeEmployeeId;
       req.tokenString = tokenEntity.token;
