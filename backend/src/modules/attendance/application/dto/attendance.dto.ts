@@ -32,6 +32,7 @@ export interface AttendanceRecordDto {
   checkoutLng?: number | null;
   checkinNote?: string | null;
   checkoutNote?: string | null;
+  adminNote?: string | null;
 }
 
 export function attendanceRecordToDto(record: AttendanceRecord): AttendanceRecordDto {

@@ -1,7 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 
 /**
- * Wrap an async route handler to catch errors and forward to the error middleware.
+ * Hàm wrapper để xử lý bất đồng bộ trong Express route handlers, giúp tránh phải dùng try/catch ở mỗi handler.
+ * Sử dụng: asyncHandler(async (req, res) => { ... })
  */
 export function asyncHandler(
   fn: (req: Request, res: Response, next: NextFunction) => Promise<void>,

@@ -27,6 +27,9 @@ const WEEKDAY_BITS = [
   32  // Saturday
 ];
 
+/**
+ * Tính khoảng cách giữa 2 điểm GPS (lat/lng) theo công thức Haversine, trả về kết quả bằng mét
+ */
 function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371000; // Earth radius in meters
   const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -61,6 +64,48 @@ function getMomentFromInterval(workDate: string, intervalValue: string | Record<
     .add(hours, 'hours')
     .add(minutes, 'minutes')
     .add(seconds, 'seconds');
+}
+
+/**
+ * Tính thời gian ca (phút) dựa trên startTime và endTime của ca.
+ * Xử lý trường hợp ca qua nửa đêm (endTime < startTime).
+ */
+function getShiftDurationMinutes(
+  workDate: string,
+  startTime: string | Record<string, number>,
+  endTime: string | Record<string, number>,
+): number {
+  const start = getMomentFromInterval(workDate, startTime);
+  let end = getMomentFromInterval(workDate, endTime);
+  // Ca qua nửa đêm: nếu end <= start thì cộng thêm 1 ngày
+  if (end.isSameOrBefore(start)) {
+    end = end.add(1, 'day');
+  }
+  return Math.max(0, end.diff(start, 'minutes'));
+}
+
+/**
+ * Tính workCredit theo tỷ lệ thực tế:
+ *   workCredit = round(actualWorkMinutes / shiftDurationMinutes * shift.workCredit, 2)
+ * Được giới hạn tối đa = shift.workCredit (không tính dư khi làm thêm giờ).
+ *
+ * @param actualWorkMinutes    Thực tế số phút làm (tính từ checkin → checkout)
+ * @param shiftDurationMinutes Thời gian chuẩn của ca (phút)
+ * @param shiftWorkCredit      Số công full của ca (ví dụ: 0.5, 1.0)
+ */
+export function calculateWorkCredit(
+  actualWorkMinutes: number,
+  shiftDurationMinutes: number,
+  shiftWorkCredit: number,
+): number {
+  // Ca có thời gian = 0 thì trả full (tránh chia 0)
+  if (shiftDurationMinutes <= 0) return shiftWorkCredit;
+
+  const ratio = actualWorkMinutes / shiftDurationMinutes;
+  const computed = ratio * shiftWorkCredit;
+
+  // Tối đa bằng full credit của ca (không cộng thêm khi OT), làm tròn 2 số thập phân
+  return Math.round(Math.min(computed, shiftWorkCredit) * 100) / 100;
 }
 
 export class AttendanceUsecase {
@@ -507,9 +552,17 @@ export class AttendanceUsecase {
     const checkinOffline = record.source === 'offline';
     const checkoutOffline = isOffline;
     const isRecordOffline = checkinOffline || checkoutOffline;
-    const isBypassedWindow = clientTimeMoment.isBefore(checkoutFromTime) || clientTimeMoment.isAfter(checkoutToTime);
-    const finalApprovalStatus = (isRecordOffline || isBypassedWindow) ? 'pending' : 'approved';
-    const workCredit = (finalApprovalStatus === 'approved') ? shift.workCredit : 0.0;
+
+    // Chỉ offline (chụp ảnh) mới cần duyệt.
+    // Ra ngoài khung giờ (về sớm / ra muộn) vẫn tính công bình thường theo thực tế.
+    const finalApprovalStatus = isRecordOffline ? 'pending' : 'approved';
+
+    // Tính workCredit theo tỉ lệ thực tế, làm tròn 2 chữ số
+    let workCredit = 0.0;
+    if (finalApprovalStatus === 'approved') {
+      const shiftDurationMin = getShiftDurationMinutes(record.workDate, shift.startTime, shift.endTime);
+      workCredit = calculateWorkCredit(actualWorkMinutes, shiftDurationMin, shift.workCredit);
+    }
 
     // 9. Cập nhật bản ghi công
     const updated = await this.recordRepo.update(input.attendanceRecordId, {
@@ -549,7 +602,10 @@ export class AttendanceUsecase {
   async getById(id: number): Promise<AttendanceRecordDto> {
     const record = await this.recordRepo.findById(id);
     if (!record) throw new NotFoundError('Không tìm thấy bản ghi công');
-    return attendanceRecordToDto(record);
+    const dto = attendanceRecordToDto(record);
+    const editLogs = await this.recordRepo.findLatestEditLogs([id]);
+    dto.adminNote = editLogs[id]?.reason || null;
+    return dto;
   }
 
   async getRecords(
@@ -582,6 +638,7 @@ export class AttendanceUsecase {
       // Lấy evidence cho từng record để đính kèm chi tiết vào ca/ra ca
       const recordIds = records.map(r => r.id);
       const evidences = await this.evidenceRepo.findByRecordIds(recordIds);
+      const editLogs = await this.recordRepo.findLatestEditLogs(recordIds);
       
       interface RecordEvidenceData {
         checkinPhotoPath: string | null;
@@ -636,6 +693,8 @@ export class AttendanceUsecase {
           r.employeeCode = info.code;
         }
 
+        r.adminNote = editLogs[r.id]?.reason || null;
+
         const ev = evidenceMap[r.id];
         if (ev) {
           r.checkinPhotoPath = ev.checkinPhotoPath;
@@ -687,13 +746,19 @@ export class AttendanceUsecase {
     if (!record) throw new NotFoundError('Không tìm thấy bản ghi công');
     await this.recordRepo.approve(id, approvedBy, status === 'rejected' ? rejectionReason : undefined);
     
-    // Nếu được duyệt, tính toán lại work_credit
+    // Nếu được duyệt (offline), tính lại workCredit theo tỷ lệ thực tế làm việc
     if (status === 'approved') {
       const shift = await this.shiftRepo.findById(record.shiftId);
       if (shift) {
+        const shiftDurationMin = getShiftDurationMinutes(record.workDate, shift.startTime, shift.endTime);
+        const computedCredit = calculateWorkCredit(
+          record.actualWorkMinutes,
+          shiftDurationMin,
+          shift.workCredit,
+        );
         await this.recordRepo.update(id, {
-          workCredit: shift.workCredit,
-          approvalStatus: 'approved'
+          workCredit: computedCredit,
+          approvalStatus: 'approved',
         });
       }
     }
@@ -715,23 +780,58 @@ export class AttendanceUsecase {
       reason,
     );
 
-    let actualWorkMinutes: number | undefined = undefined;
     const newCheckin = updateData.checkinAt ? new Date(updateData.checkinAt) : record.checkinAt;
     const newCheckout = updateData.checkoutAt ? new Date(updateData.checkoutAt) : record.checkoutAt;
+
+    // Tính lại actualWorkMinutes
+    let actualWorkMinutes: number | undefined = undefined;
     if (newCheckin && newCheckout) {
       actualWorkMinutes = Math.max(0, Math.floor((newCheckout.getTime() - newCheckin.getTime()) / 60000));
+    }
+
+    // Tự tính lại workCredit, lateMin, earlyMin theo ca
+    let computedWorkCredit: number | undefined = updateData.workCredit;
+    let computedLateMin: number | undefined = updateData.lateMin;
+    let computedEarlyMin: number | undefined = updateData.earlyMin;
+
+    if (actualWorkMinutes !== undefined) {
+      const shift = await this.shiftRepo.findById(record.shiftId);
+      if (shift) {
+        const shiftDurationMin = getShiftDurationMinutes(record.workDate, shift.startTime, shift.endTime);
+        computedWorkCredit = calculateWorkCredit(actualWorkMinutes, shiftDurationMin, shift.workCredit);
+
+        // Tính lại lateMin nếu không truyền thủ công
+        if (updateData.lateMin === undefined && newCheckin) {
+          const shiftStart = getMomentFromInterval(record.workDate, shift.startTime);
+          const checkinMoment = moment(newCheckin).utcOffset('+07:00');
+          computedLateMin = Math.max(0, Math.floor(checkinMoment.diff(shiftStart, 'minutes')));
+        }
+        // Tính lại earlyMin nếu không truyền thủ công
+        if (updateData.earlyMin === undefined && newCheckout) {
+          let shiftEnd = getMomentFromInterval(record.workDate, shift.endTime);
+          const shiftStart = getMomentFromInterval(record.workDate, shift.startTime);
+          if (shiftEnd.isSameOrBefore(shiftStart)) shiftEnd = shiftEnd.add(1, 'day');
+          const checkoutMoment = moment(newCheckout).utcOffset('+07:00');
+          computedEarlyMin = Math.max(0, Math.floor(shiftEnd.diff(checkoutMoment, 'minutes')));
+        }
+      }
     }
 
     const updated = await this.recordRepo.update(id, {
       checkinAt: updateData.checkinAt ? new Date(updateData.checkinAt) : undefined,
       checkoutAt: updateData.checkoutAt ? new Date(updateData.checkoutAt) : undefined,
       workStatus: updateData.workStatus,
-      lateMin: updateData.lateMin,
-      earlyMin: updateData.earlyMin,
-      workCredit: updateData.workCredit,
-      actualWorkMinutes: actualWorkMinutes,
+      lateMin: computedLateMin,
+      earlyMin: computedEarlyMin,
+      workCredit: computedWorkCredit,
+      actualWorkMinutes,
+      // Admin sửa thủ công → coi như đã approved
+      approvalStatus: (newCheckin && newCheckout) ? 'approved' : undefined,
     });
 
-    return attendanceRecordToDto(updated);
+    const dto = attendanceRecordToDto(updated);
+    dto.adminNote = reason;
+    return dto;
   }
+
 }

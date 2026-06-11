@@ -216,6 +216,25 @@ export class PostgresAttendanceRecordRepository implements IAttendanceRecordRepo
       [recordId, editedBy, beforeJson, afterJson, reason],
     );
   }
+
+  async findLatestEditLogs(recordIds: number[]): Promise<Record<number, { reason: string; editedBy: number }>> {
+    if (recordIds.length === 0) return {};
+    const result = await this.pool.query(
+      `SELECT DISTINCT ON (attendance_record_id) attendance_record_id, reason, edited_by
+       FROM attendance_edit_logs
+       WHERE attendance_record_id = ANY($1)
+       ORDER BY attendance_record_id, id DESC`,
+      [recordIds],
+    );
+    const map: Record<number, { reason: string; editedBy: number }> = {};
+    for (const row of result.rows) {
+      map[parseInt(row.attendance_record_id.toString(), 10)] = {
+        reason: row.reason,
+        editedBy: parseInt(row.edited_by.toString(), 10),
+      };
+    }
+    return map;
+  }
 }
 
 const APPROVAL_STATUS_DB: Record<string, number> = { pending: 1, approved: 2, rejected: 3 };

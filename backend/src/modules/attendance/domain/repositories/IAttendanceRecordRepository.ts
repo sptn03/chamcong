@@ -31,4 +31,5 @@ export interface IAttendanceRecordRepository {
   update(id: number, input: UpdateAttendanceRecordInput): Promise<AttendanceRecord>;
   approve(id: number, approvedBy: number, rejectionReason?: string): Promise<void>;
   logEdit(recordId: number, editedBy: number, beforeJson: string, afterJson: string, reason: string): Promise<void>;
+  findLatestEditLogs(recordIds: number[]): Promise<Record<number, { reason: string; editedBy: number }>>;
 }

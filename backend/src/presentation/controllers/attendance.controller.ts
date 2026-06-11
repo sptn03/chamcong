@@ -4,7 +4,7 @@ import { asyncHandler } from '../helpers/async-handler';
 import { ok, created } from '../helpers/response';
 
 /**
- * Controller cho Attendance - chỉ dùng GET (query) và POST (body)
+ * Controller cho Attendance
  */
 export class AttendanceController {
   constructor(private readonly attendanceUsecase: AttendanceUsecase) {}
