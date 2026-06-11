@@ -95,11 +95,11 @@ export function buildContainer(): AppContainer {
   const hunonicService = new HunonicService();
 
   // --- Usecases ---
-  const authUsecase = new AuthUsecase(tokenRepo, userRepo, pool, hunonicService);
-  const companyUsecase = new CompanyUsecase(companyRepo, pool);
+  const authUsecase = new AuthUsecase(tokenRepo, userRepo, deviceRepo, membershipRepo, employeeRepo, hunonicService);
+  const companyUsecase = new CompanyUsecase(companyRepo);
   const branchUsecase = new BranchUsecase(branchRepo);
   const deptUsecase = new DepartmentUsecase(deptRepo);
-  const employeeUsecase = new EmployeeUsecase(employeeRepo, pool);
+  const employeeUsecase = new EmployeeUsecase(employeeRepo, userRepo, membershipRepo);
   const membershipUsecase = new MembershipUsecase(membershipRepo);
   const deviceUsecase = new DeviceUsecase(deviceRepo);
   const locationUsecase = new LocationUsecase(locationRepo);
@@ -112,7 +112,9 @@ export function buildContainer(): AppContainer {
     shiftRepo,
     employeeRepo,
     shiftAssignmentRepo,
-    pool,
+    membershipRepo,
+    locationRepo,
+    wifiRepo,
   );
 
   // --- Middleware ---

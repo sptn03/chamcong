@@ -1,19 +1,17 @@
-import { Pool } from 'pg';
-import { ITokenRepository, IUserRepository } from '../../domain/repositories';
+import { ITokenRepository, IUserRepository, IDeviceRepository, IMembershipRepository, IEmployeeRepository } from '../../domain/repositories';
 import { LoginDto, HunonicLoginDto, HunonicPasswordLoginDto, TokenDto, LogoutDto } from '../dto';
 import { ValidationError, UnauthorizedError } from '../../../../shared/errors';
 import { HunonicService } from '../../../../infrastructure/services/HunonicService';
-import { EMPLOYEE_STATUS_ACTIVE } from '../../../../shared/constants';
 import { toVNTime } from '../../../../shared/utils/datetime';
 import { v4 as uuidv4 } from 'uuid';
-
-const PLATFORM_DB: Record<string, number> = { ios: 1, android: 2 };
 
 export class AuthUsecase {
   constructor(
     private readonly tokenRepo: ITokenRepository,
     private readonly userRepo: IUserRepository,
-    private readonly pool: Pool,
+    private readonly deviceRepo: IDeviceRepository,
+    private readonly membershipRepo: IMembershipRepository,
+    private readonly employeeRepo: IEmployeeRepository,
     private readonly hunonicService: HunonicService,
   ) {}
 
@@ -44,12 +42,8 @@ export class AuthUsecase {
     }
 
     // Kiểm tra mật khẩu dùng pgcrypto
-    const pwResult = await this.pool.query(
-      'SELECT crypt($1, pass) = pass AS valid FROM users WHERE id = $2',
-      [input.password, user.id],
-    );
-
-    if (!pwResult.rows[0]?.valid) {
+    const isValid = await this.userRepo.verifyPassword(user.id, input.password);
+    if (!isValid) {
       throw new UnauthorizedError('Sai số điện thoại hoặc mật khẩu');
     }
 
@@ -57,13 +51,8 @@ export class AuthUsecase {
     const deviceId = await this.registerOrUpdateDevice(user.id, input);
 
     // Kiểm tra role để quyết định multi-session
-    const memResult = await this.pool.query(
-      'SELECT role FROM company_memberships WHERE user_id = $1 AND deleted_at IS NULL LIMIT 1',
-      [user.id],
-    );
-
-    const MEMBERSHIP_ROLE_MAP: Record<number, string> = { 1: 'admin', 2: 'employee' };
-    const role = memResult.rows.length > 0 ? MEMBERSHIP_ROLE_MAP[memResult.rows[0].role] ?? 'employee' : 'employee';
+    const activeMemberships = await this.membershipRepo.findByUserId(user.id);
+    const role = activeMemberships.length > 0 ? activeMemberships[0].role : 'employee';
     const isAdmin = role === 'admin';
 
     // Tạo token
@@ -93,47 +82,26 @@ export class AuthUsecase {
       throw new UnauthorizedError('Token Hunonic không hợp lệ');
     }
 
-    let user;
-
-    // Tìm user bằng phone trước (với is_hunonic = true)
-    if (hunonicUser.phone) {
-      user = await this.pool.query(
-        'SELECT id, status, is_hunonic FROM users WHERE phone = $1 AND is_hunonic = TRUE',
-        [hunonicUser.phone],
-      );
-    }
-
-    // Nếu không tìm thấy theo phone, tìm theo email (với is_hunonic = true)
-    if ((!user || !user.rows.length) && hunonicUser.email) {
-      user = await this.pool.query(
-        'SELECT id, status, is_hunonic FROM users WHERE email = $1 AND is_hunonic = TRUE',
-        [hunonicUser.email],
-      );
-    }
+    const user = await this.userRepo.findHunonicUserByPhoneOrEmail(hunonicUser.phone, hunonicUser.email);
 
     // Nếu không tìm thấy user nào, báo lỗi
-    if (!user || !user.rows.length) {
+    if (!user) {
       throw new UnauthorizedError('Tài khoản chưa được cấu hình đăng nhập Hunonic');
     }
 
-    const userRow = user.rows[0];
-
-    if (userRow.status === 2) {
+    if (user.status === 'locked') {
       throw new UnauthorizedError('Tài khoản đã bị khóa');
     }
 
     // Đăng ký / cập nhật thiết bị
-    const deviceId = await this.registerOrUpdateDevice(userRow.id, input);
+    const deviceId = await this.registerOrUpdateDevice(user.id, input);
 
     // Kiểm tra role — admin được multi-session
-    const row = await this.pool.query(
-      'SELECT role FROM company_memberships WHERE user_id = $1 AND deleted_at IS NULL LIMIT 1',
-      [userRow.id],
-    );
-    const isAdmin = row.rows.length > 0 && row.rows[0].role === 1;
+    const activeMemberships = await this.membershipRepo.findByUserId(user.id);
+    const isAdmin = activeMemberships.length > 0 && activeMemberships[0].role === 'admin';
 
     // Tái sử dụng hoặc tạo session token bằng chính hunonicToken
-    return this.getOrCreateHunonicSessionToken(userRow.id, deviceId, input.hunonicToken, !isAdmin);
+    return this.getOrCreateHunonicSessionToken(user.id, deviceId, input.hunonicToken, !isAdmin);
   }
 
   /** Đăng nhập qua Hunonic bằng phone + mật khẩu (không cần token trước) */
@@ -159,64 +127,44 @@ export class AuthUsecase {
     if (!user) {
       // Tạo user mới từ thông tin Hunonic (nếu trống email thì lấy sđt@hunonic.vn)
       const email = hunonicResult.email || `${hunonicResult.phone}@hunonic.vn`;
-      const newUser = await this.pool.query(
-        `INSERT INTO users (phone, email, full_name, is_hunonic, gender, status)
-         VALUES ($1, $2, $3, TRUE, $4, 1) RETURNING *`,
-        [
-          hunonicResult.phone,
-          email,
-          hunonicResult.name,
-          hunonicResult.gender ? 1 : null,
-        ],
-      );
-      user = {
-        id: newUser.rows[0].id,
-        phone: newUser.rows[0].phone,
-        email: newUser.rows[0].email,
-        fullName: newUser.rows[0].full_name,
-        status: newUser.rows[0].status === 1 ? 'active' : 'locked',
+      user = await this.userRepo.create({
+        phone: hunonicResult.phone,
+        email,
+        fullName: hunonicResult.name,
         isHunonic: true,
-        birthday: newUser.rows[0].birthday || null,
-        gender: newUser.rows[0].gender || null,
-        passwordHash: newUser.rows[0].pass || null,
-      } as any;
+        gender: hunonicResult.gender ? 'male' : 'other',
+        status: 'active',
+      });
     } else {
       if (user.status === 'locked') {
         throw new UnauthorizedError('Tài khoản đã bị khóa');
       }
       // Cập nhật thông tin user từ Hunonic (đồng bộ)
-      await this.pool.query(
-        `UPDATE users SET is_hunonic = TRUE, full_name = $1 WHERE id = $2`,
-        [hunonicResult.name, user.id],
-      );
-      user.fullName = hunonicResult.name;
+      user = await this.userRepo.update(user.id, {
+        isHunonic: true,
+        fullName: hunonicResult.name,
+      });
     }
 
     // Đăng ký / cập nhật thiết bị
-    const deviceId = await this.registerOrUpdateDevice(user!.id, input);
+    const deviceId = await this.registerOrUpdateDevice(user.id, input);
 
     // Kiểm tra role — admin được multi-session
-    const roleRow = await this.pool.query(
-      'SELECT role FROM company_memberships WHERE user_id = $1 AND deleted_at IS NULL LIMIT 1',
-      [user!.id],
-    );
-    const isAdmin = roleRow.rows.length > 0 && roleRow.rows[0].role === 1;
+    const activeMemberships = await this.membershipRepo.findByUserId(user.id);
+    const isAdmin = activeMemberships.length > 0 && activeMemberships[0].role === 'admin';
+    const role = activeMemberships.length > 0 ? activeMemberships[0].role : 'employee';
 
     // Tái sử dụng hoặc tạo session token bằng chính hunonicToken
-    const session = await this.getOrCreateHunonicSessionToken(user!.id, deviceId, hunonicToken, !isAdmin);
-
-    // Lấy role từ company_memberships
-    const memResult = roleRow;
-    const MEMBERSHIP_ROLE_MAP: Record<number, string> = { 1: 'admin', 2: 'employee' };
+    const session = await this.getOrCreateHunonicSessionToken(user.id, deviceId, hunonicToken, !isAdmin);
 
     return {
       ...session,
       user: {
-        id: user!.id,
+        id: user.id,
         phone: input.phone,
-        fullName: user!.fullName,
-        email: user!.email,
-        role: memResult.rows.length > 0 ? MEMBERSHIP_ROLE_MAP[memResult.rows[0].role] ?? 'employee' : 'employee',
+        fullName: user.fullName,
+        email: user.email,
+        role,
       },
     };
   }
@@ -234,16 +182,14 @@ export class AuthUsecase {
       throw new ValidationError('companyId là bắt buộc');
     }
 
-    const employeeResult = await this.pool.query(
-      'SELECT id FROM employees WHERE user_id = $1 AND company_id = $2 AND deleted_at IS NULL AND status = $3',
-      [userId, companyId, EMPLOYEE_STATUS_ACTIVE],
-    );
+    const employees = await this.employeeRepo.findByUserId(userId);
+    const activeEmployee = employees.find(e => e.companyId === companyId && e.status === 'active');
 
-    if (!employeeResult.rows.length) {
+    if (!activeEmployee) {
       throw new ValidationError('Người dùng không có hồ sơ nhân viên hoạt động trong công ty này');
     }
 
-    const employeeId = Number(employeeResult.rows[0].id);
+    const employeeId = activeEmployee.id;
     await this.tokenRepo.updateActiveContext(tokenId, companyId, employeeId);
 
     return {
@@ -266,44 +212,51 @@ export class AuthUsecase {
     if (!input.deviceUid || !input.platform) return null;
 
     // Kiểm tra user đã có device approved nào chưa
-    const approvedCount = await this.pool.query(
-      'SELECT COUNT(*) AS cnt FROM devices WHERE user_id = $1 AND status = 2',
-      [userId],
-    );
+    const approvedCount = await this.deviceRepo.countApprovedDevices(userId);
+    const existingDevice = await this.deviceRepo.findByUid(userId, input.deviceUid);
 
-    const existingDevice = await this.pool.query(
-      'SELECT id, status FROM devices WHERE user_id = $1 AND device_uid = $2',
-      [userId, input.deviceUid],
-    );
+    if (existingDevice) {
+      const deviceId = existingDevice.id;
+      const status = existingDevice.status;
 
-    if (existingDevice.rows.length) {
-      const deviceId = existingDevice.rows[0].id;
-      const status = existingDevice.rows[0].status;
-
-      if (status !== 2) {
+      if (status !== 'approved') {
+        // Cập nhật lại thông tin thiết bị và chuyển trạng thái về pending nếu nó đang ở trạng thái khác approved
+        await this.deviceRepo.updateDeviceDetails(deviceId, {
+          status: 'pending',
+          deviceName: input.deviceName,
+          platform: input.platform,
+          osVersion: input.osVersion,
+          appVersion: input.appVersion,
+        });
         throw new UnauthorizedError('Thiết bị chưa được xác thực. Vui lòng đợi Admin duyệt.');
       }
 
-      await this.pool.query('UPDATE devices SET last_login_at = NOW() WHERE id = $1', [deviceId]);
+      await this.deviceRepo.updateLastLogin(deviceId);
       return deviceId;
     }
 
     // Device mới: kiểm tra nếu là device đầu tiên thì auto-approve
-    const isFirstDevice = Number(approvedCount.rows[0].cnt) === 0;
-    const status = isFirstDevice ? 2 : 1;
+    const isFirstDevice = approvedCount === 0;
+    const status = isFirstDevice ? 'approved' : 'pending';
 
-    const newDevice = await this.pool.query(
-      `INSERT INTO devices (user_id, device_uid, device_name, platform, os_version, app_version, last_login_at, status)
-       VALUES ($1, $2, $3, $4, $5, $6, NOW(), $7) RETURNING id`,
-      [userId, input.deviceUid, input.deviceName ?? null, PLATFORM_DB[input.platform] ?? input.platform,
-       input.osVersion ?? null, input.appVersion ?? null, status],
-    );
+    const newDevice = await this.deviceRepo.create({
+      userId,
+      deviceUid: input.deviceUid,
+      deviceName: input.deviceName,
+      platform: input.platform,
+      osVersion: input.osVersion,
+      appVersion: input.appVersion,
+    });
+
+    if (isFirstDevice) {
+      await this.deviceRepo.updateStatus(newDevice.id, 'approved');
+    }
 
     if (!isFirstDevice) {
       throw new UnauthorizedError('Thiết bị mới cần được Admin duyệt trước khi sử dụng.');
     }
 
-    return newDevice.rows[0].id;
+    return newDevice.id;
   }
 
   /** Tạo hoặc lấy session token cho Hunonic bằng chính token Hunonic */
@@ -315,17 +268,15 @@ export class AuthUsecase {
     const existing = await this.tokenRepo.findByToken(token, true);
 
     // Tự động gán công ty nếu người dùng chỉ thuộc về duy nhất 1 công ty hoạt động
-    const empResult = await this.pool.query(
-      'SELECT id, company_id FROM employees WHERE user_id = $1 AND deleted_at IS NULL AND status = $2',
-      [userId, EMPLOYEE_STATUS_ACTIVE]
-    );
+    const employees = await this.employeeRepo.findByUserId(userId);
+    const activeEmployees = employees.filter(e => e.status === 'active');
 
     let activeCompanyId: number | null = null;
     let activeEmployeeId: number | null = null;
 
-    if (empResult.rows.length === 1) {
-      activeCompanyId = Number(empResult.rows[0].company_id);
-      activeEmployeeId = Number(empResult.rows[0].id);
+    if (activeEmployees.length === 1) {
+      activeCompanyId = activeEmployees[0].companyId;
+      activeEmployeeId = activeEmployees[0].id;
     }
 
     let entity;
@@ -363,17 +314,15 @@ export class AuthUsecase {
     }
 
     // Tự động gán công ty nếu người dùng chỉ thuộc về duy nhất 1 công ty hoạt động
-    const empResult = await this.pool.query(
-      'SELECT id, company_id FROM employees WHERE user_id = $1 AND deleted_at IS NULL AND status = $2',
-      [userId, EMPLOYEE_STATUS_ACTIVE]
-    );
+    const employees = await this.employeeRepo.findByUserId(userId);
+    const activeEmployees = employees.filter(e => e.status === 'active');
 
     let activeCompanyId: number | undefined = undefined;
     let activeEmployeeId: number | undefined = undefined;
 
-    if (empResult.rows.length === 1) {
-      activeCompanyId = Number(empResult.rows[0].company_id);
-      activeEmployeeId = Number(empResult.rows[0].id);
+    if (activeEmployees.length === 1) {
+      activeCompanyId = activeEmployees[0].companyId;
+      activeEmployeeId = activeEmployees[0].id;
     }
 
     const token = uuidv4();

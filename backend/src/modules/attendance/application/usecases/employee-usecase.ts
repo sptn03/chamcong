@@ -1,5 +1,4 @@
-import { Pool } from 'pg';
-import { IEmployeeRepository } from '../../domain/repositories';
+import { IEmployeeRepository, IUserRepository, IMembershipRepository } from '../../domain/repositories';
 import { CreateEmployeeInput, UpdateEmployeeInput } from '../../domain/entities';
 import { EmployeeDto, employeeToDto, CreateEmployeeDto, UpdateEmployeeDto } from '../dto';
 import { ValidationError, NotFoundError } from '../../../../shared/errors';
@@ -7,7 +6,8 @@ import { ValidationError, NotFoundError } from '../../../../shared/errors';
 export class EmployeeUsecase {
   constructor(
     private readonly employeeRepo: IEmployeeRepository,
-    private readonly pool: Pool,
+    private readonly userRepo: IUserRepository,
+    private readonly membershipRepo: IMembershipRepository,
   ) {}
 
   async create(input: CreateEmployeeDto): Promise<EmployeeDto> {
@@ -24,15 +24,15 @@ export class EmployeeUsecase {
 
     if (!userId) {
       // Kiểm tra SĐT trong bảng users
-      const existingUser = await this.pool.query('SELECT id, email FROM users WHERE phone = $1', [input.phone]);
-      if (existingUser.rows.length > 0) {
-        userId = Number(existingUser.rows[0].id);
+      const existingUser = await this.userRepo.findByPhone(input.phone);
+      if (existingUser) {
+        userId = existingUser.id;
         
         // Cập nhật email mặc định nếu user đã tồn tại nhưng chưa có email
-        const existingEmail = existingUser.rows[0].email;
+        const existingEmail = existingUser.email;
         if (!existingEmail) {
           const defaultEmail = `${input.phone}@hunonic.vn`;
-          await this.pool.query('UPDATE users SET email = $1 WHERE id = $2', [defaultEmail, userId]);
+          await this.userRepo.update(userId, { email: defaultEmail });
         }
         
         // Kiểm tra xem user này đã là nhân viên của công ty này chưa
@@ -49,20 +49,17 @@ export class EmployeeUsecase {
         const email = input.email || `${input.phone}@hunonic.vn`;
 
         // Tạo user mới
-        const userRes = await this.pool.query(
-          `INSERT INTO users (phone, email, pass, full_name, birthday, gender, status, is_hunonic)
-           VALUES ($1, $2, CASE WHEN $3::text IS NOT NULL THEN crypt($3, gen_salt('bf')) ELSE NULL END, $4, $5, $6, 1, $7) RETURNING id`,
-          [
-            input.phone,
-            email,
-            input.password || null,
-            input.fullName,
-            input.birthday || null,
-            input.gender || 3,
-            input.isHunonic || false
-          ]
-        );
-        userId = Number(userRes.rows[0].id);
+        const newUser = await this.userRepo.create({
+          phone: input.phone,
+          email,
+          password: input.password || undefined,
+          fullName: input.fullName,
+          birthday: input.birthday || undefined,
+          gender: input.gender as any,
+          isHunonic: input.isHunonic || false,
+          status: 'active'
+        });
+        userId = newUser.id;
       }
     }
 
@@ -77,23 +74,21 @@ export class EmployeeUsecase {
     });
 
     // Thêm company membership
-    const existingMem = await this.pool.query(
-      'SELECT id FROM company_memberships WHERE user_id = $1 AND company_id = $2 AND deleted_at IS NULL',
-      [userId, input.companyId]
-    );
-    if (existingMem.rows.length > 0) {
-      await this.pool.query(
-        `UPDATE company_memberships 
-         SET employee_id = $1, role = $2, active_department_id = $3
-         WHERE id = $4`,
-        [entity.id, input.role || 2, input.departmentId, existingMem.rows[0].id]
-      );
+    const existingMem = await this.membershipRepo.findActive(userId, input.companyId);
+    if (existingMem) {
+      await this.membershipRepo.update(existingMem.id, {
+        employeeId: entity.id,
+        role: input.role ? (input.role === 1 ? 'admin' : 'employee') : 'employee',
+        activeDepartmentId: input.departmentId,
+      });
     } else {
-      await this.pool.query(
-        `INSERT INTO company_memberships (user_id, company_id, employee_id, role, active_department_id)
-         VALUES ($1, $2, $3, $4, $5)`,
-        [userId, input.companyId, entity.id, input.role || 2, input.departmentId]
-      );
+      await this.membershipRepo.create({
+        userId,
+        companyId: input.companyId,
+        employeeId: entity.id,
+        role: input.role ? (input.role === 1 ? 'admin' : 'employee') : 'employee',
+        activeDepartmentId: input.departmentId,
+      });
     }
 
     // Lấy thông tin nhân viên đầy đủ
@@ -125,14 +120,10 @@ export class EmployeeUsecase {
     });
 
     // Cập nhật users
-    const userUpdates: string[] = [];
-    const userValues: any[] = [];
-    let paramIndex = 1;
-
-    const userResult = await this.pool.query('SELECT phone, email FROM users WHERE id = $1', [existing.userId]);
-    const userRow = userResult.rows[0] || {};
-    const currentPhone = userRow.phone || '';
-    const currentEmail = userRow.email || '';
+    const user = await this.userRepo.findById(existing.userId);
+    if (!user) throw new NotFoundError('User not found');
+    const currentPhone = user.phone || '';
+    const currentEmail = user.email || '';
 
     let finalEmail = input.email;
     const newPhone = input.phone;
@@ -150,41 +141,24 @@ export class EmployeeUsecase {
       finalEmail = `${newPhone || currentPhone}@hunonic.vn`;
     }
 
-    if (input.fullName !== undefined) { userUpdates.push(`full_name = $${paramIndex++}`); userValues.push(input.fullName); }
-    if (input.phone !== undefined) { userUpdates.push(`phone = $${paramIndex++}`); userValues.push(input.phone); }
-    if (finalEmail !== undefined) { userUpdates.push(`email = $${paramIndex++}`); userValues.push(finalEmail); }
-    if (input.birthday !== undefined) { userUpdates.push(`birthday = $${paramIndex++}`); userValues.push(input.birthday); }
-    if (input.gender !== undefined) { userUpdates.push(`gender = $${paramIndex++}`); userValues.push(input.gender); }
-    if (input.isHunonic !== undefined) { userUpdates.push(`is_hunonic = $${paramIndex++}`); userValues.push(input.isHunonic); }
-    if (input.password !== undefined && input.password !== '') { 
-      userUpdates.push(`pass = crypt($${paramIndex++}, gen_salt('bf'))`); 
-      userValues.push(input.password); 
-    }
-
-    if (userUpdates.length > 0) {
-      userValues.push(existing.userId);
-      await this.pool.query(
-        `UPDATE users SET ${userUpdates.join(', ')} WHERE id = $${paramIndex}`,
-        userValues
-      );
-    }
+    await this.userRepo.update(existing.userId, {
+      fullName: input.fullName,
+      phone: input.phone,
+      email: finalEmail,
+      birthday: input.birthday,
+      gender: input.gender as any,
+      isHunonic: input.isHunonic,
+      password: input.password,
+    });
 
     // Cập nhật company_memberships
     if (input.role !== undefined || input.departmentId !== undefined) {
-      const memUpdates: string[] = [];
-      const memValues: any[] = [];
-      let memParamIndex = 1;
-
-      if (input.role !== undefined) { memUpdates.push(`role = $${memParamIndex++}`); memValues.push(input.role); }
-      if (input.departmentId !== undefined) { memUpdates.push(`active_department_id = $${memParamIndex++}`); memValues.push(input.departmentId); }
-
-      if (memUpdates.length > 0) {
-        memValues.push(existing.userId);
-        memValues.push(existing.companyId);
-        await this.pool.query(
-          `UPDATE company_memberships SET ${memUpdates.join(', ')} WHERE user_id = $${memParamIndex} AND company_id = $${memParamIndex + 1} AND deleted_at IS NULL`,
-          memValues
-        );
+      const existingMem = await this.membershipRepo.findActive(existing.userId, existing.companyId);
+      if (existingMem) {
+        await this.membershipRepo.update(existingMem.id, {
+          role: input.role ? (input.role === 1 ? 'admin' : 'employee') : undefined,
+          activeDepartmentId: input.departmentId,
+        });
       }
     }
 

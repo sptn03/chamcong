@@ -7,4 +7,5 @@ export interface ICompanyRepository {
   create(input: CreateCompanyInput): Promise<Company>;
   update(id: number, input: UpdateCompanyInput): Promise<Company>;
   softDelete(id: number): Promise<void>;
+  createWithDefaults(input: CreateCompanyInput, creatorUserId: number): Promise<Company>;
 }

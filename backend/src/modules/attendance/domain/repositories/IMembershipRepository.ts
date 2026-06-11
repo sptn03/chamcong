@@ -7,4 +7,5 @@ export interface IMembershipRepository {
   findActive(userId: number, companyId: number): Promise<CompanyMembership | null>;
   create(input: CreateMembershipInput): Promise<CompanyMembership>;
   softDelete(id: number): Promise<void>;
+  update(id: number, input: Partial<CreateMembershipInput>): Promise<CompanyMembership>;
 }

@@ -87,4 +87,23 @@ export class PostgresMembershipRepository implements IMembershipRepository {
       [id],
     );
   }
+
+  async update(id: number, input: Partial<CreateMembershipInput>): Promise<CompanyMembership> {
+    const fields: string[] = [];
+    const values: unknown[] = [];
+    let paramIndex = 1;
+
+    if (input.employeeId !== undefined) { fields.push(`employee_id = $${paramIndex++}`); values.push(input.employeeId); }
+    if (input.role !== undefined) { fields.push(`role = $${paramIndex++}`); values.push(roleToDb(input.role)); }
+    if (input.activeDepartmentId !== undefined) { fields.push(`active_department_id = $${paramIndex++}`); values.push(input.activeDepartmentId); }
+
+    if (fields.length === 0) return this.findById(id) as Promise<CompanyMembership>;
+
+    values.push(id);
+    const result: QueryResult<MembershipRow> = await this.pool.query(
+      `UPDATE company_memberships SET ${fields.join(', ')} WHERE id = $${paramIndex} AND deleted_at IS NULL RETURNING *`,
+      values,
+    );
+    return rowToEntity(result.rows[0]);
+  }
 }

@@ -141,4 +141,17 @@ export class PostgresEmployeeRepository implements IEmployeeRepository {
       [id],
     );
   }
+
+  async findByIds(ids: number[]): Promise<Employee[]> {
+    if (ids.length === 0) return [];
+    const result: QueryResult<EmployeeRow> = await this.pool.query(
+      `SELECT e.*, u.full_name, u.phone AS user_phone, u.email, u.is_hunonic, m.role AS membership_role 
+       FROM employees e
+       JOIN users u ON u.id = e.user_id
+       LEFT JOIN company_memberships m ON m.employee_id = e.id AND m.deleted_at IS NULL
+       WHERE e.id = ANY($1) AND e.deleted_at IS NULL`,
+      [ids],
+    );
+    return result.rows.map(rowToEntity);
+  }
 }

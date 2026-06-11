@@ -1,10 +1,12 @@
-import { Pool } from 'pg';
 import {
   IAttendanceRecordRepository,
   IAttendanceEvidenceRepository,
   IShiftRepository,
   IEmployeeRepository,
   IShiftAssignmentRepository,
+  IMembershipRepository,
+  ILocationRepository,
+  IWifiRepository,
 } from '../../domain/repositories';
 import {
   CreateAttendanceRecordInput,
@@ -68,7 +70,9 @@ export class AttendanceUsecase {
     private readonly shiftRepo: IShiftRepository,
     private readonly employeeRepo: IEmployeeRepository,
     private readonly shiftAssignmentRepo: IShiftAssignmentRepository,
-    private readonly pool: Pool,
+    private readonly membershipRepo: IMembershipRepository,
+    private readonly locationRepo: ILocationRepository,
+    private readonly wifiRepo: IWifiRepository,
   ) {}
 
   async checkin(input: CheckinDto): Promise<AttendanceRecordDto> {
@@ -87,8 +91,6 @@ export class AttendanceUsecase {
       throw new ValidationError('Ca làm việc này không hoạt động vào ngày này trong tuần');
     }
 
-    console.log('weekdayBit', weekdayBit, 'shift.weekdays', shift.weekdays);
-    console.log('input', input.employeeId, 'input.workDate', input.workDate);
     // 4. Kiểm tra gán ca
     const effectiveAssignments = await this.shiftAssignmentRepo.findEffective(input.employeeId, input.workDate);
     const isAssigned = effectiveAssignments.some(sa => Number(sa.shiftId) === Number(input.shiftId));
@@ -101,10 +103,6 @@ export class AttendanceUsecase {
     const checkinToTime = getMomentFromInterval(input.workDate, shift.checkinTo);
     const checkinTime = input.clientTime ? new Date(input.clientTime) : new Date();
     const clientTimeMoment = moment(checkinTime).utcOffset('+07:00');
-
-    console.log('clientTime (ICT):', clientTimeMoment.format('YYYY-MM-DD HH:mm:ss'));
-    console.log('checkinFrom (ICT):', checkinFromTime.format('YYYY-MM-DD HH:mm:ss'));
-    console.log('checkinTo   (ICT):', checkinToTime.format('YYYY-MM-DD HH:mm:ss'));
 
     if (clientTimeMoment.isBefore(checkinFromTime) || clientTimeMoment.isAfter(checkinToTime)) {
       throw new ValidationError('Không nằm trong khung giờ được phép check-in ca này');
@@ -145,25 +143,22 @@ export class AttendanceUsecase {
           throw new ValidationError('Thiếu tọa độ GPS để xác thực vị trí');
         }
 
-        const locRes = await this.pool.query(
-          `SELECT id, name, lat, lng, radius_m
-           FROM locations
-           WHERE deleted_at IS NULL
-             AND company_id = $1
-             AND (employee_id = $2 OR (employee_id IS NULL AND branch_id = $3))`,
-          [employee.companyId, employee.id, employee.branchId]
+        const locations = await this.locationRepo.findActiveLocationsForEmployee(
+          employee.companyId,
+          employee.id,
+          employee.branchId
         );
 
-        allowedLocations = locRes.rows.map(r => ({ name: r.name, radius_m: r.radius_m }));
+        allowedLocations = locations.map(l => ({ name: l.name, radius_m: l.radiusM }));
 
-        for (const loc of locRes.rows) {
-          const dist = haversineDistance(input.lat, input.lng, parseFloat(loc.lat), parseFloat(loc.lng));
+        for (const loc of locations) {
+          const dist = haversineDistance(input.lat, input.lng, parseFloat(loc.lat as any), parseFloat(loc.lng as any));
           if (minDistance === null || dist < minDistance) {
             minDistance = dist;
             closestLocationName = loc.name;
-            closestLocationRadius = loc.radius_m;
+            closestLocationRadius = loc.radiusM;
           }
-          if (dist <= loc.radius_m) {
+          if (dist <= loc.radiusM) {
             gpsValid = true;
             matchedLocationId = Number(loc.id);
             distanceM = Math.round(dist * 100) / 100;
@@ -178,19 +173,16 @@ export class AttendanceUsecase {
           throw new ValidationError('Thiếu thông tin Wifi SSID để xác thực mạng');
         }
 
-        const wifiRes = await this.pool.query(
-          `SELECT id, ssid, bssid, match_mode
-           FROM wifis
-           WHERE deleted_at IS NULL
-             AND company_id = $1
-             AND branch_id = $2`,
-          [employee.companyId, employee.branchId]
-        );
+        const wifis = await this.wifiRepo.findByBranchId(employee.branchId);
 
-        allowedWifis = wifiRes.rows.map(r => ({ ssid: r.ssid, bssid: r.bssid, match_mode: r.match_mode }));
+        allowedWifis = wifis.map(w => ({
+          ssid: w.ssid,
+          bssid: w.bssid,
+          match_mode: w.matchMode === 'ssid' ? 1 : 2,
+        }));
 
-        for (const wifi of wifiRes.rows) {
-          if (wifi.match_mode === 1) { // SSID
+        for (const wifi of wifis) {
+          if (wifi.matchMode === 'ssid') { // SSID
             if (input.wifiSsid === wifi.ssid) {
               wifiValid = true;
               matchedWifiId = Number(wifi.id);
@@ -372,25 +364,22 @@ export class AttendanceUsecase {
           throw new ValidationError('Thiếu tọa độ GPS để xác thực vị trí');
         }
 
-        const locRes = await this.pool.query(
-          `SELECT id, name, lat, lng, radius_m
-           FROM locations
-           WHERE deleted_at IS NULL
-             AND company_id = $1
-             AND (employee_id = $2 OR (employee_id IS NULL AND branch_id = $3))`,
-          [employee.companyId, employee.id, employee.branchId]
+        const locations = await this.locationRepo.findActiveLocationsForEmployee(
+          employee.companyId,
+          employee.id,
+          employee.branchId
         );
 
-        allowedLocations = locRes.rows.map(r => ({ name: r.name, radius_m: r.radius_m }));
+        allowedLocations = locations.map(l => ({ name: l.name, radius_m: l.radiusM }));
 
-        for (const loc of locRes.rows) {
-          const dist = haversineDistance(input.lat, input.lng, parseFloat(loc.lat), parseFloat(loc.lng));
+        for (const loc of locations) {
+          const dist = haversineDistance(input.lat, input.lng, parseFloat(loc.lat as any), parseFloat(loc.lng as any));
           if (minDistance === null || dist < minDistance) {
             minDistance = dist;
             closestLocationName = loc.name;
-            closestLocationRadius = loc.radius_m;
+            closestLocationRadius = loc.radiusM;
           }
-          if (dist <= loc.radius_m) {
+          if (dist <= loc.radiusM) {
             gpsValid = true;
             matchedLocationId = Number(loc.id);
             distanceM = Math.round(dist * 100) / 100;
@@ -405,19 +394,16 @@ export class AttendanceUsecase {
           throw new ValidationError('Thiếu thông tin Wifi SSID để xác thực mạng');
         }
 
-        const wifiRes = await this.pool.query(
-          `SELECT id, ssid, bssid, match_mode
-           FROM wifis
-           WHERE deleted_at IS NULL
-             AND company_id = $1
-             AND branch_id = $2`,
-          [employee.companyId, employee.branchId]
-        );
+        const wifis = await this.wifiRepo.findByBranchId(employee.branchId);
 
-        allowedWifis = wifiRes.rows.map(r => ({ ssid: r.ssid, bssid: r.bssid, match_mode: r.match_mode }));
+        allowedWifis = wifis.map(w => ({
+          ssid: w.ssid,
+          bssid: w.bssid,
+          match_mode: w.matchMode === 'ssid' ? 1 : 2,
+        }));
 
-        for (const wifi of wifiRes.rows) {
-          if (wifi.match_mode === 1) { // SSID
+        for (const wifi of wifis) {
+          if (wifi.matchMode === 'ssid') { // SSID
             if (input.wifiSsid === wifi.ssid) {
               wifiValid = true;
               matchedWifiId = Number(wifi.id);
@@ -566,27 +552,115 @@ export class AttendanceUsecase {
     return attendanceRecordToDto(record);
   }
 
-  async getRecords(filter: AttendanceFilterDto) {
+  async getRecords(
+    filter: AttendanceFilterDto,
+    context?: { userId: number; activeEmployeeId: number | null }
+  ) {
+    let isAdmin = false;
+    if (context && filter.companyId) {
+      const activeMembership = await this.membershipRepo.findActive(context.userId, filter.companyId);
+      if (activeMembership && activeMembership.role === 'admin') {
+        isAdmin = true;
+      }
+    }
+
+    if (!isAdmin && context?.activeEmployeeId) {
+      filter.employeeId = context.activeEmployeeId;
+    }
+
     const result = await this.recordRepo.findFiltered(filter);
     const records = result.data.map(attendanceRecordToDto);
     // Lấy tên + mã từ bảng users & employees
     if (records.length > 0) {
       const ids = [...new Set(records.map(r => r.employeeId))];
-      const empRows = await this.pool.query(
-        `SELECT e.id, u.full_name, e.employee_code
-         FROM employees e JOIN users u ON u.id = e.user_id
-         WHERE e.id = ANY($1)`,
-        [ids],
-      );
+      const employees = await this.employeeRepo.findByIds(ids);
       const nameMap: Record<number, { name: string; code: string }> = {};
-      for (const row of empRows.rows) {
-        nameMap[row.id] = { name: row.full_name, code: row.employee_code };
+      for (const emp of employees) {
+        nameMap[emp.id] = { name: emp.fullName || '', code: emp.employeeCode };
       }
+
+      // Lấy evidence cho từng record để đính kèm chi tiết vào ca/ra ca
+      const recordIds = records.map(r => r.id);
+      const evidences = await this.evidenceRepo.findByRecordIds(recordIds);
+      
+      interface RecordEvidenceData {
+        checkinPhotoPath: string | null;
+        checkoutPhotoPath: string | null;
+        checkinLat: number | null;
+        checkinLng: number | null;
+        checkoutLat: number | null;
+        checkoutLng: number | null;
+        checkinNote: string | null;
+        checkoutNote: string | null;
+      }
+
+      const evidenceMap: Record<number, RecordEvidenceData> = {};
+      for (const ev of evidences) {
+        const recId = ev.attendanceRecordId;
+        if (!recId) continue;
+        if (!evidenceMap[recId]) {
+          evidenceMap[recId] = {
+            checkinPhotoPath: null,
+            checkoutPhotoPath: null,
+            checkinLat: null,
+            checkinLng: null,
+            checkoutLat: null,
+            checkoutLng: null,
+            checkinNote: null,
+            checkoutNote: null,
+          };
+        }
+        
+        const data = evidenceMap[recId];
+        const isCheckin = ev.punchType === 'in';
+        const latVal = ev.lat ? parseFloat(ev.lat as any) : null;
+        const lngVal = ev.lng ? parseFloat(ev.lng as any) : null;
+        
+        if (isCheckin) {
+          data.checkinPhotoPath = ev.photoPath || null;
+          data.checkinLat = latVal;
+          data.checkinLng = lngVal;
+          data.checkinNote = ev.note || null;
+        } else {
+          data.checkoutPhotoPath = ev.photoPath || null;
+          data.checkoutLat = latVal;
+          data.checkoutLng = lngVal;
+          data.checkoutNote = ev.note || null;
+        }
+      }
+
       for (const r of records) {
         const info = nameMap[r.employeeId];
         if (info) {
           r.employeeName = info.name;
           r.employeeCode = info.code;
+        }
+
+        const ev = evidenceMap[r.id];
+        if (ev) {
+          r.checkinPhotoPath = ev.checkinPhotoPath;
+          r.checkoutPhotoPath = ev.checkoutPhotoPath;
+          r.checkinLat = ev.checkinLat;
+          r.checkinLng = ev.checkinLng;
+          r.checkoutLat = ev.checkoutLat;
+          r.checkoutLng = ev.checkoutLng;
+          r.checkinNote = ev.checkinNote;
+          r.checkoutNote = ev.checkoutNote;
+          
+          // Tổng hợp cho tương thích ngược
+          r.photoPath = ev.checkinPhotoPath || ev.checkoutPhotoPath || null;
+          r.lat = ev.checkinLat || ev.checkoutLat || null;
+          r.lng = ev.checkinLng || ev.checkoutLng || null;
+          
+          if (ev.checkinNote && ev.checkoutNote) {
+            r.note = `Vào ca: ${ev.checkinNote}\nRa ca: ${ev.checkoutNote}`;
+          } else if (ev.checkinNote) {
+            r.note = `Vào ca: ${ev.checkinNote}`;
+          } else if (ev.checkoutNote) {
+            r.note = `Ra ca: ${ev.checkoutNote}`;
+          } else {
+            r.note = null;
+          }
         }
       }
     }
@@ -633,10 +707,12 @@ export class AttendanceUsecase {
     if (!record) throw new NotFoundError('Không tìm thấy bản ghi công');
 
     // Lưu log chỉnh sửa
-    await this.pool.query(
-      `INSERT INTO attendance_edit_logs (attendance_record_id, edited_by, before_json, after_json, reason)
-       VALUES ($1, $2, $3, $4, $5)`,
-      [id, editedBy, JSON.stringify(record), JSON.stringify(updateData), reason],
+    await this.recordRepo.logEdit(
+      id,
+      editedBy,
+      JSON.stringify(record),
+      JSON.stringify(updateData),
+      reason,
     );
 
     let actualWorkMinutes: number | undefined = undefined;

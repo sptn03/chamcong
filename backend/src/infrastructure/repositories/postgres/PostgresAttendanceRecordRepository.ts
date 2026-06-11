@@ -208,6 +208,14 @@ export class PostgresAttendanceRecordRepository implements IAttendanceRecordRepo
       [status, approvedBy, rejectionReason ?? null, id],
     );
   }
+
+  async logEdit(recordId: number, editedBy: number, beforeJson: string, afterJson: string, reason: string): Promise<void> {
+    await this.pool.query(
+      `INSERT INTO attendance_edit_logs (attendance_record_id, edited_by, before_json, after_json, reason)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [recordId, editedBy, beforeJson, afterJson, reason],
+    );
+  }
 }
 
 const APPROVAL_STATUS_DB: Record<string, number> = { pending: 1, approved: 2, rejected: 3 };

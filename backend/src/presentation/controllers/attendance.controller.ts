@@ -21,7 +21,7 @@ export class AttendanceController {
 
     const filter = {
       companyId: req.query.companyId ? parseInt(req.query.companyId as string, 10) : (req.activeCompanyId || undefined),
-      employeeId: req.query.employeeId ? parseInt(req.query.employeeId as string, 10) : (req.activeEmployeeId || undefined),
+      employeeId: req.query.employeeId ? parseInt(req.query.employeeId as string, 10) : undefined,
       branchId: req.query.branchId ? parseInt(req.query.branchId as string, 10) : undefined,
       departmentId: req.query.departmentId ? parseInt(req.query.departmentId as string, 10) : undefined,
       fromDate: req.query.fromDate as string | undefined,
@@ -30,7 +30,10 @@ export class AttendanceController {
       page: req.query.page ? parseInt(req.query.page as string, 10) : undefined,
       limit: req.query.limit ? parseInt(req.query.limit as string, 10) : undefined,
     };
-    const result = await this.attendanceUsecase.getRecords(filter);
+    const result = await this.attendanceUsecase.getRecords(filter, {
+      userId: req.userId!,
+      activeEmployeeId: req.activeEmployeeId || null,
+    });
     res.json(ok({
       items: result.data,
       pagination: result.pagination,

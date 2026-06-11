@@ -8,4 +8,6 @@ export interface IDeviceRepository {
   create(input: RegisterDeviceInput): Promise<Device>;
   updateStatus(id: number, status: Device['status'], reviewedBy?: number, rejectionReason?: string): Promise<void>;
   updateLastLogin(id: number): Promise<void>;
+  updateDeviceDetails(id: number, details: Partial<RegisterDeviceInput> & { status?: Device['status'] }): Promise<void>;
+  countApprovedDevices(userId: number): Promise<number>;
 }

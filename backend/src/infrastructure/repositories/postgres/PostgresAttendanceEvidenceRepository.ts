@@ -89,4 +89,13 @@ export class PostgresAttendanceEvidenceRepository implements IAttendanceEvidence
     );
     return rowToEntity(result.rows[0]);
   }
+
+  async findByRecordIds(recordIds: number[]): Promise<AttendanceEvidence[]> {
+    if (recordIds.length === 0) return [];
+    const result: QueryResult<EvidenceRow> = await this.pool.query(
+      'SELECT * FROM attendance_evidences WHERE attendance_record_id = ANY($1) ORDER BY punch_type ASC, id ASC',
+      [recordIds],
+    );
+    return result.rows.map(rowToEntity);
+  }
 }

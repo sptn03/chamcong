@@ -8,4 +8,5 @@ export interface IEmployeeRepository {
   create(input: CreateEmployeeInput): Promise<Employee>;
   update(id: number, input: UpdateEmployeeInput): Promise<Employee>;
   softDelete(id: number): Promise<void>;
+  findByIds(ids: number[]): Promise<Employee[]>;
 }

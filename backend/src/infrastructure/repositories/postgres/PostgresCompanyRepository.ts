@@ -96,4 +96,63 @@ export class PostgresCompanyRepository implements ICompanyRepository {
       [id],
     );
   }
+
+  async createWithDefaults(input: CreateCompanyInput, creatorUserId: number): Promise<Company> {
+    const client = await this.pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      // 1. Tạo công ty
+      const companyRes = await client.query(
+        `INSERT INTO companies (name, code, timezone)
+         VALUES ($1, $2, $3)
+         RETURNING *`,
+        [input.name, input.code, input.timezone ?? 'Asia/Ho_Chi_Minh']
+      );
+      const companyRow = companyRes.rows[0];
+
+      // 2. Tạo default branch
+      const branchRes = await client.query(
+        `INSERT INTO branches (company_id, name, address)
+         VALUES ($1, $2, $3)
+         RETURNING id`,
+        [companyRow.id, 'Trụ sở chính', 'Mặc định']
+      );
+      const branchId = branchRes.rows[0].id;
+
+      // 3. Tạo default department
+      const deptRes = await client.query(
+        `INSERT INTO departments (company_id, branch_id, name)
+         VALUES ($1, $2, $3)
+         RETURNING id`,
+        [companyRow.id, branchId, 'Văn phòng']
+      );
+      const deptId = deptRes.rows[0].id;
+
+      // 4. Tạo hồ sơ nhân viên (status = 1 (active))
+      const employeeRes = await client.query(
+        `INSERT INTO employees (user_id, company_id, branch_id, department_id, employee_code, title, status)
+         VALUES ($1, $2, $3, $4, $5, $6, 1)
+         RETURNING id`,
+        [creatorUserId, companyRow.id, branchId, deptId, 'ADMIN', 'Quản trị viên']
+      );
+      const employeeId = employeeRes.rows[0].id;
+
+      // 5. Tạo company membership (role = 1 (admin))
+      await client.query(
+        `INSERT INTO company_memberships (user_id, company_id, employee_id, role, active_department_id)
+         VALUES ($1, $2, $3, 1, $4)`,
+        [creatorUserId, companyRow.id, employeeId, deptId]
+      );
+
+      await client.query('COMMIT');
+
+      return rowToEntity(companyRow);
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
+  }
 }

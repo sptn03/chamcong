@@ -30,4 +30,5 @@ export interface IAttendanceRecordRepository {
   create(input: CreateAttendanceRecordInput): Promise<AttendanceRecord>;
   update(id: number, input: UpdateAttendanceRecordInput): Promise<AttendanceRecord>;
   approve(id: number, approvedBy: number, rejectionReason?: string): Promise<void>;
+  logEdit(recordId: number, editedBy: number, beforeJson: string, afterJson: string, reason: string): Promise<void>;
 }

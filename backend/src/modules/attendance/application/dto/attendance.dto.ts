@@ -20,6 +20,18 @@ export interface AttendanceRecordDto {
   actualWorkMinutes: number;
   workCredit: number;
   createdAt: string;
+  photoPath?: string | null;
+  note?: string | null;
+  lat?: number | null;
+  lng?: number | null;
+  checkinPhotoPath?: string | null;
+  checkoutPhotoPath?: string | null;
+  checkinLat?: number | null;
+  checkinLng?: number | null;
+  checkoutLat?: number | null;
+  checkoutLng?: number | null;
+  checkinNote?: string | null;
+  checkoutNote?: string | null;
 }
 
 export function attendanceRecordToDto(record: AttendanceRecord): AttendanceRecordDto {
