@@ -149,8 +149,13 @@ export class AttendanceUsecase {
     const checkinTime = input.clientTime ? new Date(input.clientTime) : new Date();
     const clientTimeMoment = moment(checkinTime).utcOffset('+07:00');
 
+    let isCheckinOutside = false;
     if (clientTimeMoment.isBefore(checkinFromTime) || clientTimeMoment.isAfter(checkinToTime)) {
-      throw new ValidationError('Không nằm trong khung giờ được phép check-in ca này');
+      const hasNote = input.note && input.note.trim().length > 0;
+      if (!hasNote) {
+        throw new ValidationError('Không nằm trong khung giờ được phép check-in ca này. Vui lòng nhập ghi chú (lý do) để thực hiện check-in.');
+      }
+      isCheckinOutside = true;
     }
 
     // 6. Kiểm tra đã check-in ca này chưa
@@ -304,7 +309,9 @@ export class AttendanceUsecase {
     let lateMin = 0;
     let workStatus = 'normal';
 
-    if (clientTimeMoment.isAfter(startTimeMoment)) {
+    if (isCheckinOutside) {
+      workStatus = 'forgot';
+    } else if (clientTimeMoment.isAfter(startTimeMoment)) {
       const diff = clientTimeMoment.diff(startTimeMoment, 'minutes');
       if (diff > shift.lateThresholdMin) {
         lateMin = diff;
@@ -371,17 +378,17 @@ export class AttendanceUsecase {
     if (!employee) throw new NotFoundError('Không tìm thấy nhân viên');
 
     const checkoutTime = input.clientTime ? new Date(input.clientTime) : new Date();
-
-    // 3. Kiểm tra khung giờ checkout
     const checkoutFromTime = getMomentFromInterval(record.workDate, shift.checkoutFrom);
     const checkoutToTime = getMomentFromInterval(record.workDate, shift.checkoutTo);
     const clientTimeMoment = moment(checkoutTime).utcOffset('+07:00');
 
+    let isCheckoutOutside = false;
     if (clientTimeMoment.isBefore(checkoutFromTime) || clientTimeMoment.isAfter(checkoutToTime)) {
       const hasNote = input.note && input.note.trim().length > 0;
       if (!hasNote) {
         throw new ValidationError('Không nằm trong khung giờ được phép check-out ca này. Vui lòng nhập ghi chú (lý do) để thực hiện check-out.');
       }
+      isCheckoutOutside = true;
     }
 
     // 4. Xác thực vị trí (GPS) và/hoặc mạng (Wifi)
@@ -533,7 +540,9 @@ export class AttendanceUsecase {
 
     // 6. Tính toán lại workStatus
     let finalWorkStatus = record.workStatus; // 'normal' hoặc 'late' hoặc 'leave' ...
-    if (earlyMin > 0) {
+    if (finalWorkStatus === 'forgot' || isCheckoutOutside) {
+      finalWorkStatus = 'forgot';
+    } else if (earlyMin > 0) {
       if (finalWorkStatus === 'late') {
         finalWorkStatus = 'late_early';
       } else if (finalWorkStatus === 'normal') {

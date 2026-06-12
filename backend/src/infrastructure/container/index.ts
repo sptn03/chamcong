@@ -105,7 +105,7 @@ export function buildContainer(): AppContainer {
   const locationUsecase = new LocationUsecase(locationRepo);
   const wifiUsecase = new WifiUsecase(wifiRepo);
   const shiftUsecase = new ShiftUsecase(shiftRepo);
-  const shiftAssignmentUsecase = new ShiftAssignmentUsecase(shiftAssignmentRepo, shiftRepo);
+  const shiftAssignmentUsecase = new ShiftAssignmentUsecase(shiftAssignmentRepo, shiftRepo, recordRepo);
   const attendanceUsecase = new AttendanceUsecase(
     recordRepo,
     evidenceRepo,

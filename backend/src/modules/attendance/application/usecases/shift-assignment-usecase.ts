@@ -1,4 +1,4 @@
-import { IShiftAssignmentRepository, IShiftRepository } from '../../domain/repositories';
+import { IShiftAssignmentRepository, IShiftRepository, IAttendanceRecordRepository } from '../../domain/repositories';
 import { ShiftAssignmentDto, shiftAssignmentToDto, CreateShiftAssignmentDto } from '../dto';
 import { ValidationError, NotFoundError } from '../../../../shared/errors';
 import moment from 'moment';
@@ -29,6 +29,7 @@ export class ShiftAssignmentUsecase {
   constructor(
     private readonly assignmentRepo: IShiftAssignmentRepository,
     private readonly shiftRepo: IShiftRepository,
+    private readonly recordRepo: IAttendanceRecordRepository,
   ) {}
 
   async create(input: CreateShiftAssignmentDto): Promise<ShiftAssignmentDto> {
@@ -92,12 +93,25 @@ export class ShiftAssignmentUsecase {
     const todayStr = moment().utcOffset('+07:00').format('YYYY-MM-DD');
     const isToday = date === todayStr;
 
+    // Lấy danh sách các bản ghi chấm công của ngày hôm nay để xem có ca nào đang dở dang (đã checkin nhưng chưa checkout)
+    const activeRecords = isToday ? await this.recordRepo.findByEmployeeAndDate(employeeId, date) : [];
+
     const result: ShiftAssignmentDto[] = [];
     for (const entity of entities) {
       const shift = await this.shiftRepo.findById(entity.shiftId);
       if (!shift) continue;
 
       if (isToday) {
+        // Kiểm tra xem ca này đã check-in nhưng chưa check-out chưa
+        const hasUnfinishedCheckin = activeRecords.some(
+          r => Number(r.shiftId) === Number(shift.id) && r.checkinAt && !r.checkoutAt
+        );
+
+        if (hasUnfinishedCheckin) {
+          result.push(shiftAssignmentToDto(entity, shift));
+          continue;
+        }
+
         const currentMoment = moment().utcOffset('+07:00');
         // Trích xuất checkin_from và checkout_to sang dạng Moment tương ứng với ngày 'date'
         const checkinFromTime = getMomentFromInterval(date, shift.checkinFrom as any);

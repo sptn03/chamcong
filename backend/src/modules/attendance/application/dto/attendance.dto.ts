@@ -53,7 +53,7 @@ export function attendanceRecordToDto(record: AttendanceRecord): AttendanceRecor
     lateMin: record.lateMin,
     earlyMin: record.earlyMin,
     actualWorkMinutes: record.actualWorkMinutes,
-    workCredit: record.workCredit,
+    workCredit: Number(record.workCredit),
     createdAt: toVNTime(record.createdAt),
   };
 }

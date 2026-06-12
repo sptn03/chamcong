@@ -12,7 +12,7 @@ export class EmployeeUsecase {
 
   async create(input: CreateEmployeeDto): Promise<EmployeeDto> {
     if (!input.companyId || !input.employeeCode || !input.fullName || !input.phone) {
-      throw new ValidationError('Missing required fields (companyId, employeeCode, fullName, phone)');
+      throw new ValidationError('Vui lòng cung cấp đầy đủ thông tin bắt buộc');
     }
 
     const existingCode = await this.employeeRepo.findByCode(input.companyId, input.employeeCode);
