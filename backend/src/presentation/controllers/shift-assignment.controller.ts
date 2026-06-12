@@ -22,15 +22,13 @@ export class ShiftAssignmentController {
     if (id) {
       const result = await this.assignUsecase.getById(id);
       res.json(ok(result));
-    } else if (companyId) {
-      const result = await this.assignUsecase.getByCompany(companyId);
-      res.json(ok(result));
     } else if (employeeId && date) {
       // Tra cứu ca hiệu lực cho nhân viên theo ngày
       const result = await this.assignUsecase.getEffective(employeeId, date);
       res.json(ok(result));
-    } else if (employeeId) {
-      const result = await this.assignUsecase.getByEmployee(employeeId);
+    } else if (req.query.employeeId) {
+      const explicitEmployeeId = parseInt(req.query.employeeId as string, 10);
+      const result = await this.assignUsecase.getByEmployee(explicitEmployeeId);
       res.json(ok(result));
     } else if (departmentId) {
       const result = await this.assignUsecase.getByDepartment(departmentId);
@@ -40,6 +38,9 @@ export class ShiftAssignmentController {
       res.json(ok(result));
     } else if (shiftId) {
       const result = await this.assignUsecase.getByShift(shiftId);
+      res.json(ok(result));
+    } else if (companyId) {
+      const result = await this.assignUsecase.getByCompany(companyId);
       res.json(ok(result));
     } else {
       res.json(ok([]));
