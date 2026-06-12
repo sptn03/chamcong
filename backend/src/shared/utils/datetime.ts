@@ -29,15 +29,15 @@ export function getVnNow(): Date {
 }
 
 /**
- * Chuyển Date thành ISO string có timezone +07:00
- * Ví dụ: 2026-06-10T13:55:00+07:00
+ * Chuyển Date thành chuỗi thời gian sạch có timezone +07:00 người dùng đọc được
+ * Ví dụ: 2026-06-10 13:55:00
  */
 export function toVNTime(date: Date): string {
-  return moment(date).utcOffset('+07:00').format('YYYY-MM-DDTHH:mm:ssZ');
+  return moment(date).utcOffset('+07:00').format('YYYY-MM-DD HH:mm:ss');
 }
 
 /**
- * Chuyển Date | null thành ISO string có timezone +07:00, hoặc null
+ * Chuyển Date | null thành chuỗi thời gian sạch có timezone +07:00, hoặc null
  */
 export function toVNTimeNullable(date: Date | null | undefined): string | null {
   if (!date) return null;

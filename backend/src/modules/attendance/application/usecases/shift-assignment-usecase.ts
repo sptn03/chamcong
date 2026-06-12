@@ -44,35 +44,45 @@ export class ShiftAssignmentUsecase {
     return shiftAssignmentToDto(entity);
   }
 
+  private async enrichAssignments(entities: any[]): Promise<ShiftAssignmentDto[]> {
+    const result: ShiftAssignmentDto[] = [];
+    for (const entity of entities) {
+      const shift = await this.shiftRepo.findById(entity.shiftId);
+      result.push(shiftAssignmentToDto(entity, shift));
+    }
+    return result;
+  }
+
   async getById(id: number): Promise<ShiftAssignmentDto> {
     const entity = await this.assignmentRepo.findById(id);
     if (!entity) throw new NotFoundError('Shift assignment not found');
-    return shiftAssignmentToDto(entity);
+    const shift = await this.shiftRepo.findById(entity.shiftId);
+    return shiftAssignmentToDto(entity, shift);
   }
 
   async getByShift(shiftId: number): Promise<ShiftAssignmentDto[]> {
     const entities = await this.assignmentRepo.findByShiftId(shiftId);
-    return entities.map(shiftAssignmentToDto);
+    return this.enrichAssignments(entities);
   }
 
   async getByEmployee(employeeId: number): Promise<ShiftAssignmentDto[]> {
     const entities = await this.assignmentRepo.findByEmployeeId(employeeId);
-    return entities.map(shiftAssignmentToDto);
+    return this.enrichAssignments(entities);
   }
 
   async getByDepartment(departmentId: number): Promise<ShiftAssignmentDto[]> {
     const entities = await this.assignmentRepo.findByDepartmentId(departmentId);
-    return entities.map(shiftAssignmentToDto);
+    return this.enrichAssignments(entities);
   }
 
   async getByBranch(branchId: number): Promise<ShiftAssignmentDto[]> {
     const entities = await this.assignmentRepo.findByBranchId(branchId);
-    return entities.map(shiftAssignmentToDto);
+    return this.enrichAssignments(entities);
   }
 
   async getByCompany(companyId: number): Promise<ShiftAssignmentDto[]> {
     const entities = await this.assignmentRepo.findByCompanyId(companyId);
-    return entities.map(shiftAssignmentToDto);
+    return this.enrichAssignments(entities);
   }
 
   async getEffective(employeeId: number, date: string): Promise<ShiftAssignmentDto[]> {
@@ -82,26 +92,26 @@ export class ShiftAssignmentUsecase {
     const todayStr = moment().utcOffset('+07:00').format('YYYY-MM-DD');
     const isToday = date === todayStr;
 
-    if (isToday) {
-      const filteredEntities = [];
-      const currentMoment = moment().utcOffset('+07:00');
+    const result: ShiftAssignmentDto[] = [];
+    for (const entity of entities) {
+      const shift = await this.shiftRepo.findById(entity.shiftId);
+      if (!shift) continue;
 
-      for (const entity of entities) {
-        const shift = await this.shiftRepo.findById(entity.shiftId);
-        if (!shift) continue;
-
+      if (isToday) {
+        const currentMoment = moment().utcOffset('+07:00');
         // Trích xuất checkin_from và checkout_to sang dạng Moment tương ứng với ngày 'date'
         const checkinFromTime = getMomentFromInterval(date, shift.checkinFrom as any);
         const checkoutToTime = getMomentFromInterval(date, shift.checkoutTo as any);
 
         if (currentMoment.isSameOrAfter(checkinFromTime) && currentMoment.isSameOrBefore(checkoutToTime)) {
-          filteredEntities.push(entity);
+          result.push(shiftAssignmentToDto(entity, shift));
         }
+      } else {
+        result.push(shiftAssignmentToDto(entity, shift));
       }
-      return filteredEntities.map(shiftAssignmentToDto);
     }
 
-    return entities.map(shiftAssignmentToDto);
+    return result;
   }
 
   async update(id: number, input: CreateShiftAssignmentDto): Promise<ShiftAssignmentDto> {

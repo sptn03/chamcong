@@ -1,5 +1,6 @@
-import { ShiftAssignment } from '../../domain/entities';
+import { ShiftAssignment, Shift } from '../../domain/entities';
 import { toVNTime } from '../../../../shared/utils/datetime';
+import { ShiftDto, shiftToDto } from './shift.dto';
 
 export interface ShiftAssignmentDto {
   id: number;
@@ -12,9 +13,10 @@ export interface ShiftAssignmentDto {
   startsOn: string | null;
   endsOn: string | null;
   createdAt: string;
+  shift?: ShiftDto;
 }
 
-export function shiftAssignmentToDto(entity: ShiftAssignment): ShiftAssignmentDto {
+export function shiftAssignmentToDto(entity: ShiftAssignment, shiftEntity?: Shift | null): ShiftAssignmentDto {
   return {
     id: entity.id,
     shiftId: entity.shiftId,
@@ -26,6 +28,7 @@ export function shiftAssignmentToDto(entity: ShiftAssignment): ShiftAssignmentDt
     startsOn: entity.startsOn,
     endsOn: entity.endsOn,
     createdAt: toVNTime(entity.createdAt),
+    shift: shiftEntity ? shiftToDto(shiftEntity) : undefined,
   };
 }
 

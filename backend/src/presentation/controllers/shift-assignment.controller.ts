@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { ShiftAssignmentUsecase } from '../../modules/attendance/application/usecases';
 import { asyncHandler } from '../helpers/async-handler';
 import { ok, created } from '../helpers/response';
+import moment from 'moment';
 
 /**
  * Controller cho ShiftAssignment 
@@ -9,7 +10,7 @@ import { ok, created } from '../helpers/response';
 export class ShiftAssignmentController {
   constructor(private readonly assignUsecase: ShiftAssignmentUsecase) {}
 
-  /** GET /api/shift-assignments?[id=][&shiftId=][&employeeId=][&departmentId=][&branchId=][&employeeId=&date=] */
+  /** GET /api/shift-assignments?[id=][&shiftId=][&employeeId=][&departmentId=][&branchId=][&employeeId=&date=][&all=] */
   getAll = asyncHandler(async (req: Request, res: Response) => {
     const id = req.query.id ? parseInt(req.query.id as string, 10) : undefined;
     const shiftId = req.query.shiftId ? parseInt(req.query.shiftId as string, 10) : undefined;
@@ -18,19 +19,25 @@ export class ShiftAssignmentController {
     const branchId = req.query.branchId ? parseInt(req.query.branchId as string, 10) : undefined;
     const companyId = req.query.companyId ? parseInt(req.query.companyId as string, 10) : (req.activeCompanyId || undefined);
     const date = req.query.date as string | undefined;
+    const all = req.query.all === 'true';
 
     if (id) {
       const result = await this.assignUsecase.getById(id);
       res.json(ok(result));
-    } else if (employeeId && date) {
-      // Tra cứu ca hiệu lực cho nhân viên theo ngày
-      const result = await this.assignUsecase.getEffective(employeeId, date);
-      res.json(ok(result));
-    } else if (req.query.employeeId) {
-      const explicitEmployeeId = parseInt(req.query.employeeId as string, 10);
-      const result = await this.assignUsecase.getByEmployee(explicitEmployeeId);
-      res.json(ok(result));
-    } else if (departmentId) {
+      return;
+    }
+
+    if (all) {
+      if (companyId) {
+        const result = await this.assignUsecase.getByCompany(companyId);
+        res.json(ok(result));
+      } else {
+        res.json(ok([]));
+      }
+      return;
+    }
+
+    if (departmentId) {
       const result = await this.assignUsecase.getByDepartment(departmentId);
       res.json(ok(result));
     } else if (branchId) {
@@ -39,11 +46,21 @@ export class ShiftAssignmentController {
     } else if (shiftId) {
       const result = await this.assignUsecase.getByShift(shiftId);
       res.json(ok(result));
-    } else if (companyId) {
-      const result = await this.assignUsecase.getByCompany(companyId);
+    } else if (req.query.employeeId && !date) {
+      const explicitEmployeeId = parseInt(req.query.employeeId as string, 10);
+      const result = await this.assignUsecase.getByEmployee(explicitEmployeeId);
       res.json(ok(result));
     } else {
-      res.json(ok([]));
+      if (employeeId) {
+        const queryDate = date || moment().utcOffset('+07:00').format('YYYY-MM-DD');
+        const result = await this.assignUsecase.getEffective(employeeId, queryDate);
+        res.json(ok(result));
+      } else if (companyId) {
+        const result = await this.assignUsecase.getByCompany(companyId);
+        res.json(ok(result));
+      } else {
+        res.json(ok([]));
+      }
     }
   });
 
