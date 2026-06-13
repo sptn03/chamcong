@@ -10,12 +10,12 @@ export class CompanyUsecase {
 
   async create(input: CreateCompanyDto, creatorUserId?: number): Promise<CompanyDto> {
     if (!input.name || !input.code) {
-      throw new ValidationError('Name and code are required');
+      throw new ValidationError('Vui lòng cung cấp đầy đủ thông tin');
     }
 
     const existing = await this.companyRepo.findByCode(input.code);
     if (existing) {
-      throw new ValidationError('Company code already exists');
+      throw new ValidationError('Mã công ty đã tồn tại');
     }
 
     if (creatorUserId) {
@@ -29,7 +29,7 @@ export class CompanyUsecase {
 
   async getById(id: number): Promise<CompanyDto> {
     const entity = await this.companyRepo.findById(id);
-    if (!entity) throw new NotFoundError('Company not found');
+    if (!entity) throw new NotFoundError('Không tìm thấy công ty');
     return companyToDto(entity);
   }
 
@@ -40,12 +40,12 @@ export class CompanyUsecase {
 
   async update(id: number, input: UpdateCompanyDto): Promise<CompanyDto> {
     const existing = await this.companyRepo.findById(id);
-    if (!existing) throw new NotFoundError('Company not found');
+    if (!existing) throw new NotFoundError('Không tìm thấy công ty');
 
     if (input.code) {
       const duplicate = await this.companyRepo.findByCode(input.code);
       if (duplicate && duplicate.id !== id) {
-        throw new ValidationError('Company code already exists');
+        throw new ValidationError('Mã công ty đã tồn tại');
       }
     }
 
@@ -55,7 +55,7 @@ export class CompanyUsecase {
 
   async delete(id: number): Promise<void> {
     const existing = await this.companyRepo.findById(id);
-    if (!existing) throw new NotFoundError('Company not found');
+    if (!existing) throw new NotFoundError('Không tìm thấy công ty');
     await this.companyRepo.softDelete(id);
   }
 }

@@ -7,10 +7,10 @@ export class LocationUsecase {
 
   async create(input: CreateLocationDto): Promise<LocationDto> {
     if (!input.companyId || !input.branchId || !input.name || input.lat === undefined || input.lng === undefined) {
-      throw new ValidationError('companyId, branchId, name, lat, lng are required');
+      throw new ValidationError('Vui lòng cung cấp đầy đủ thông tin');
     }
-    if (input.lat < -90 || input.lat > 90) throw new ValidationError('lat must be between -90 and 90');
-    if (input.lng < -180 || input.lng > 180) throw new ValidationError('lng must be between -180 and 180');
+    if (input.lat < -90 || input.lat > 90) throw new ValidationError('lat phải nằm trong khoảng -90 và 90');
+    if (input.lng < -180 || input.lng > 180) throw new ValidationError('lng phải nằm trong khoảng -180 và 180');
     const entity = await this.locationRepo.create({
       companyId: input.companyId,
       branchId: input.branchId,
@@ -26,7 +26,7 @@ export class LocationUsecase {
 
   async getById(id: number): Promise<LocationDto> {
     const entity = await this.locationRepo.findById(id);
-    if (!entity) throw new NotFoundError('Location not found');
+    if (!entity) throw new NotFoundError('Không tìm thấy địa điểm');
     return locationToDto(entity);
   }
 
@@ -42,16 +42,16 @@ export class LocationUsecase {
 
   async update(id: number, input: UpdateLocationDto): Promise<LocationDto> {
     const existing = await this.locationRepo.findById(id);
-    if (!existing) throw new NotFoundError('Location not found');
-    if (input.lat !== undefined && (input.lat < -90 || input.lat > 90)) throw new ValidationError('lat out of range');
-    if (input.lng !== undefined && (input.lng < -180 || input.lng > 180)) throw new ValidationError('lng out of range');
+    if (!existing) throw new NotFoundError('Không tìm thấy địa điểm');
+    if (input.lat !== undefined && (input.lat < -90 || input.lat > 90)) throw new ValidationError('lat phải nằm trong khoảng -90 và 90');
+    if (input.lng !== undefined && (input.lng < -180 || input.lng > 180)) throw new ValidationError('lng phải nằm trong khoảng -180 và 180');
     const entity = await this.locationRepo.update(id, input);
     return locationToDto(entity);
   }
 
   async delete(id: number): Promise<void> {
     const existing = await this.locationRepo.findById(id);
-    if (!existing) throw new NotFoundError('Location not found');
+    if (!existing) throw new NotFoundError('Không tìm thấy địa điểm');
     await this.locationRepo.softDelete(id);
   }
 }

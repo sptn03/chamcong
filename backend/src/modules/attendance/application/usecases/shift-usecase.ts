@@ -7,7 +7,7 @@ export class ShiftUsecase {
 
   async create(input: CreateShiftDto): Promise<ShiftDto> {
     if (!input.companyId || !input.name || !input.startTime || !input.endTime) {
-      throw new ValidationError('companyId, name, startTime, endTime are required');
+      throw new ValidationError('Vui lòng cung cấp đầy đủ thông tin');
     }
     if (input.weekdays < 1 || input.weekdays > 127) throw new ValidationError('weekdays must be 1-127');
     const entity = await this.shiftRepo.create(input);
@@ -27,9 +27,9 @@ export class ShiftUsecase {
 
   async update(id: number, input: UpdateShiftDto): Promise<ShiftDto> {
     const existing = await this.shiftRepo.findById(id);
-    if (!existing) throw new NotFoundError('Shift not found');
+    if (!existing) throw new NotFoundError('Không tìm thấy ca làm việc');
     if (input.weekdays !== undefined && (input.weekdays < 1 || input.weekdays > 127)) {
-      throw new ValidationError('weekdays must be 1-127');
+      throw new ValidationError('Vui lòng cung cấp đầy đủ thông tin');
     }
     const entity = await this.shiftRepo.update(id, input);
     return shiftToDto(entity);
@@ -37,7 +37,7 @@ export class ShiftUsecase {
 
   async delete(id: number): Promise<void> {
     const existing = await this.shiftRepo.findById(id);
-    if (!existing) throw new NotFoundError('Shift not found');
+    if (!existing) throw new NotFoundError('Không tìm thấy ca làm việc');
     await this.shiftRepo.softDelete(id);
   }
 }

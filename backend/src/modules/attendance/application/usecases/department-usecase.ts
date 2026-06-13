@@ -7,7 +7,7 @@ export class DepartmentUsecase {
 
   async create(input: CreateDepartmentDto): Promise<DepartmentDto> {
     if (!input.companyId || !input.name) {
-      throw new ValidationError('companyId and name are required');
+      throw new ValidationError('Vui lòng cung cấp đầy đủ thông tin');
     }
     const entity = await this.deptRepo.create(input);
     return departmentToDto(entity);
@@ -15,7 +15,7 @@ export class DepartmentUsecase {
 
   async getById(id: number): Promise<DepartmentDto> {
     const entity = await this.deptRepo.findById(id);
-    if (!entity) throw new NotFoundError('Department not found');
+    if (!entity) throw new NotFoundError('Không tìm thấy phòng ban');
     return departmentToDto(entity);
   }
 
@@ -31,14 +31,14 @@ export class DepartmentUsecase {
 
   async update(id: number, input: UpdateDepartmentDto): Promise<DepartmentDto> {
     const existing = await this.deptRepo.findById(id);
-    if (!existing) throw new NotFoundError('Department not found');
+    if (!existing) throw new NotFoundError('Không tìm thấy phòng ban');
     const entity = await this.deptRepo.update(id, input);
     return departmentToDto(entity);
   }
 
   async delete(id: number): Promise<void> {
     const existing = await this.deptRepo.findById(id);
-    if (!existing) throw new NotFoundError('Department not found');
+    if (!existing) throw new NotFoundError('Không tìm thấy phòng ban');
     await this.deptRepo.softDelete(id);
   }
 }

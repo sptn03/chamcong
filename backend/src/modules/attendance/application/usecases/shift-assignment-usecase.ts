@@ -34,12 +34,12 @@ export class ShiftAssignmentUsecase {
 
   async create(input: CreateShiftAssignmentDto): Promise<ShiftAssignmentDto> {
     if (!input.shiftId || !input.scopeType || !input.companyId) {
-      throw new ValidationError('shiftId, scopeType, companyId are required');
+      throw new ValidationError('Vui lòng cung cấp đầy đủ thông tin');
     }
     // Validate scope constraints
-    if (input.scopeType === 'branch' && !input.branchId) throw new ValidationError('branchId required for branch scope');
-    if (input.scopeType === 'department' && !input.departmentId) throw new ValidationError('departmentId required for department scope');
-    if (input.scopeType === 'employee' && !input.employeeId) throw new ValidationError('employeeId required for employee scope');
+    if (input.scopeType === 'branch' && !input.branchId) throw new ValidationError('Không tìm thấy chi nhánh');
+    if (input.scopeType === 'department' && !input.departmentId) throw new ValidationError('Không tìm thấy phòng ban');
+    if (input.scopeType === 'employee' && !input.employeeId) throw new ValidationError('Không tìm thấy nhân viên');
 
     const entity = await this.assignmentRepo.create(input);
     return shiftAssignmentToDto(entity);
@@ -56,7 +56,7 @@ export class ShiftAssignmentUsecase {
 
   async getById(id: number): Promise<ShiftAssignmentDto> {
     const entity = await this.assignmentRepo.findById(id);
-    if (!entity) throw new NotFoundError('Shift assignment not found');
+    if (!entity) throw new NotFoundError('Không tìm thấy ca làm việc');
     const shift = await this.shiftRepo.findById(entity.shiftId);
     return shiftAssignmentToDto(entity, shift);
   }
@@ -130,14 +130,14 @@ export class ShiftAssignmentUsecase {
 
   async update(id: number, input: CreateShiftAssignmentDto): Promise<ShiftAssignmentDto> {
     if (!input.shiftId || !input.scopeType || !input.companyId) {
-      throw new ValidationError('shiftId, scopeType, companyId are required');
+      throw new ValidationError('Vui lòng cung cấp đầy đủ thông tin');
     }
-    if (input.scopeType === 'branch' && !input.branchId) throw new ValidationError('branchId required for branch scope');
-    if (input.scopeType === 'department' && !input.departmentId) throw new ValidationError('departmentId required for department scope');
-    if (input.scopeType === 'employee' && !input.employeeId) throw new ValidationError('employeeId required for employee scope');
+    if (input.scopeType === 'branch' && !input.branchId) throw new ValidationError('Không tìm thấy chi nhánh');
+    if (input.scopeType === 'department' && !input.departmentId) throw new ValidationError('Không tìm thấy phòng ban');
+    if (input.scopeType === 'employee' && !input.employeeId) throw new ValidationError('Không tìm thấy nhân viên');
 
     const existing = await this.assignmentRepo.findById(id);
-    if (!existing) throw new NotFoundError('Shift assignment not found');
+    if (!existing) throw new NotFoundError('Không tìm thấy ca làm việc');
 
     const entity = await this.assignmentRepo.update(id, input);
     return shiftAssignmentToDto(entity);
@@ -145,7 +145,7 @@ export class ShiftAssignmentUsecase {
 
   async delete(id: number): Promise<void> {
     const existing = await this.assignmentRepo.findById(id);
-    if (!existing) throw new NotFoundError('Shift assignment not found');
+    if (!existing) throw new NotFoundError('Không tìm thấy ca làm việc');
     await this.assignmentRepo.softDelete(id);
   }
 }

@@ -7,12 +7,12 @@ export class MembershipUsecase {
 
   async create(input: CreateMembershipDto): Promise<MembershipDto> {
     if (!input.userId || !input.companyId) {
-      throw new ValidationError('userId and companyId are required');
+      throw new ValidationError('Vui lòng cung cấp đầy đủ thông tin');
     }
 
     const existing = await this.membershipRepo.findActive(input.userId, input.companyId);
     if (existing) {
-      throw new ValidationError('User already has an active membership in this company');
+      throw new ValidationError('Người dùng đã có tư cách thành viên hoạt động trong công ty này');
     }
 
     const entity = await this.membershipRepo.create(input);
@@ -21,7 +21,7 @@ export class MembershipUsecase {
 
   async getById(id: number): Promise<MembershipDto> {
     const entity = await this.membershipRepo.findById(id);
-    if (!entity) throw new NotFoundError('Membership not found');
+    if (!entity) throw new NotFoundError('Không tìm thấy tư cách thành viên');
     return membershipToDto(entity);
   }
 
@@ -37,7 +37,7 @@ export class MembershipUsecase {
 
   async delete(id: number): Promise<void> {
     const existing = await this.membershipRepo.findById(id);
-    if (!existing) throw new NotFoundError('Membership not found');
+    if (!existing) throw new NotFoundError('Không tìm thấy tư cách thành viên');
     await this.membershipRepo.softDelete(id);
   }
 }

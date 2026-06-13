@@ -7,7 +7,7 @@ export class WifiUsecase {
 
   async create(input: CreateWifiDto): Promise<WifiDto> {
     if (!input.companyId || !input.branchId || !input.ssid) {
-      throw new ValidationError('companyId, branchId and ssid are required');
+      throw new ValidationError('Vui lòng cung cấp đầy đủ thông tin');
     }
     const entity = await this.wifiRepo.create(input);
     return wifiToDto(entity);
@@ -15,7 +15,7 @@ export class WifiUsecase {
 
   async getById(id: number): Promise<WifiDto> {
     const entity = await this.wifiRepo.findById(id);
-    if (!entity) throw new NotFoundError('Wifi not found');
+    if (!entity) throw new NotFoundError('Không tìm thấy wifi');
     return wifiToDto(entity);
   }
 
@@ -31,14 +31,14 @@ export class WifiUsecase {
 
   async update(id: number, input: UpdateWifiDto): Promise<WifiDto> {
     const existing = await this.wifiRepo.findById(id);
-    if (!existing) throw new NotFoundError('Wifi not found');
+    if (!existing) throw new NotFoundError('Không tìm thấy wifi');
     const entity = await this.wifiRepo.update(id, input);
     return wifiToDto(entity);
   }
 
   async delete(id: number): Promise<void> {
     const existing = await this.wifiRepo.findById(id);
-    if (!existing) throw new NotFoundError('Wifi not found');
+    if (!existing) throw new NotFoundError('Không tìm thấy wifi');
     await this.wifiRepo.softDelete(id);
   }
 }

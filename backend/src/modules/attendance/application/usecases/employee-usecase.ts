@@ -98,7 +98,7 @@ export class EmployeeUsecase {
 
   async getById(id: number): Promise<EmployeeDto> {
     const entity = await this.employeeRepo.findById(id);
-    if (!entity) throw new NotFoundError('Employee not found');
+    if (!entity) throw new NotFoundError('Không tìm thấy thông tin nhân viên');
     return employeeToDto(entity);
   }
 
@@ -109,7 +109,7 @@ export class EmployeeUsecase {
 
   async update(id: number, input: UpdateEmployeeDto): Promise<EmployeeDto> {
     const existing = await this.employeeRepo.findById(id);
-    if (!existing) throw new NotFoundError('Employee not found');
+    if (!existing) throw new NotFoundError('Không tìm thấy thông tin nhân viên');
 
     // Cập nhật employees
     await this.employeeRepo.update(id, {
@@ -121,7 +121,7 @@ export class EmployeeUsecase {
 
     // Cập nhật users
     const user = await this.userRepo.findById(existing.userId);
-    if (!user) throw new NotFoundError('User not found');
+    if (!user) throw new NotFoundError('Tài khoản không tồn tại');
     const currentPhone = user.phone || '';
     const currentEmail = user.email || '';
 
@@ -168,7 +168,7 @@ export class EmployeeUsecase {
 
   async delete(id: number): Promise<void> {
     const existing = await this.employeeRepo.findById(id);
-    if (!existing) throw new NotFoundError('Employee not found');
+    if (!existing) throw new NotFoundError('Không tìm thấy thông tin nhân viên');
     await this.employeeRepo.softDelete(id);
   }
 }

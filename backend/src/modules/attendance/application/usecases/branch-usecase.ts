@@ -7,7 +7,7 @@ export class BranchUsecase {
 
   async create(input: CreateBranchDto): Promise<BranchDto> {
     if (!input.companyId || !input.name) {
-      throw new ValidationError('companyId and name are required');
+      throw new ValidationError('Vui lòng cung cấp đầy đủ thông tin');
     }
     const entity = await this.branchRepo.create(input);
     return branchToDto(entity);
@@ -15,7 +15,7 @@ export class BranchUsecase {
 
   async getById(id: number): Promise<BranchDto> {
     const entity = await this.branchRepo.findById(id);
-    if (!entity) throw new NotFoundError('Branch not found');
+    if (!entity) throw new NotFoundError('Không tìm thấy chi nhánh');
     return branchToDto(entity);
   }
 
@@ -26,14 +26,14 @@ export class BranchUsecase {
 
   async update(id: number, input: UpdateBranchDto): Promise<BranchDto> {
     const existing = await this.branchRepo.findById(id);
-    if (!existing) throw new NotFoundError('Branch not found');
+    if (!existing) throw new NotFoundError('Không tìm thấy chi nhánh');
     const entity = await this.branchRepo.update(id, input);
     return branchToDto(entity);
   }
 
   async delete(id: number): Promise<void> {
     const existing = await this.branchRepo.findById(id);
-    if (!existing) throw new NotFoundError('Branch not found');
+    if (!existing) throw new NotFoundError('Chi nhánh không tồn tại');
     await this.branchRepo.softDelete(id);
   }
 }
