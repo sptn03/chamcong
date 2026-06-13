@@ -15,6 +15,8 @@ import {
 } from '../../domain/entities';
 import { AttendanceRecordDto, attendanceRecordToDto, CheckinDto, CheckoutDto, AttendanceFilterDto, evidenceToDto } from '../dto';
 import { ValidationError, NotFoundError } from '../../../../shared/errors';
+import { haversineDistance } from '../../../../shared/utils/geo';
+import { getMomentFromInterval, getShiftDurationMinutes, calculateWorkCredit } from '../../../../shared/utils/shift-time';
 import moment from 'moment';
 
 const WEEKDAY_BITS = [
@@ -26,87 +28,6 @@ const WEEKDAY_BITS = [
   16, // Friday
   32  // Saturday
 ];
-
-/**
- * Tính khoảng cách giữa 2 điểm GPS (lat/lng) theo công thức Haversine, trả về kết quả bằng mét
- */
-function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const R = 6371000; // Earth radius in meters
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-    Math.sin(dLon / 2) * Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
-}
-
-function getMomentFromInterval(workDate: string, intervalValue: string | Record<string, number>): moment.Moment {
-  let hours = 0, minutes = 0, seconds = 0;
-
-  if (typeof intervalValue === 'string') {
-    // HH:MM:SS string format
-    const parts = intervalValue.split(':');
-    hours = parseInt(parts[0] || '0', 10);
-    minutes = parseInt(parts[1] || '0', 10);
-    seconds = parseInt(parts[2] || '0', 10);
-  } else if (intervalValue && typeof intervalValue === 'object') {
-    // PostgresInterval object: { hours, minutes, seconds }
-    hours = (intervalValue as any).hours || 0;
-    minutes = (intervalValue as any).minutes || 0;
-    seconds = (intervalValue as any).seconds || 0;
-  }
-
-  return moment(workDate, 'YYYY-MM-DD')
-    .utcOffset('+07:00')
-    .startOf('day')
-    .add(hours, 'hours')
-    .add(minutes, 'minutes')
-    .add(seconds, 'seconds');
-}
-
-/**
- * Tính thời gian ca (phút) dựa trên startTime và endTime của ca.
- * Xử lý trường hợp ca qua nửa đêm (endTime < startTime).
- */
-function getShiftDurationMinutes(
-  workDate: string,
-  startTime: string | Record<string, number>,
-  endTime: string | Record<string, number>,
-): number {
-  const start = getMomentFromInterval(workDate, startTime);
-  let end = getMomentFromInterval(workDate, endTime);
-  // Ca qua nửa đêm: nếu end <= start thì cộng thêm 1 ngày
-  if (end.isSameOrBefore(start)) {
-    end = end.add(1, 'day');
-  }
-  return Math.max(0, end.diff(start, 'minutes'));
-}
-
-/**
- * Tính workCredit theo tỷ lệ thực tế:
- *   workCredit = round(actualWorkMinutes / shiftDurationMinutes * shift.workCredit, 2)
- * Được giới hạn tối đa = shift.workCredit (không tính dư khi làm thêm giờ).
- *
- * @param actualWorkMinutes    Thực tế số phút làm (tính từ checkin → checkout)
- * @param shiftDurationMinutes Thời gian chuẩn của ca (phút)
- * @param shiftWorkCredit      Số công full của ca (ví dụ: 0.5, 1.0)
- */
-export function calculateWorkCredit(
-  actualWorkMinutes: number,
-  shiftDurationMinutes: number,
-  shiftWorkCredit: number,
-): number {
-  // Ca có thời gian = 0 thì trả full (tránh chia 0)
-  if (shiftDurationMinutes <= 0) return shiftWorkCredit;
-
-  const ratio = actualWorkMinutes / shiftDurationMinutes;
-  const computed = ratio * shiftWorkCredit;
-
-  // Tối đa bằng full credit của ca (không cộng thêm khi OT), làm tròn 2 số thập phân
-  return Math.round(Math.min(computed, shiftWorkCredit) * 100) / 100;
-}
 
 export class AttendanceUsecase {
   constructor(

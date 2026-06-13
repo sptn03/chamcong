@@ -1,6 +1,7 @@
 import { Pool, QueryResult } from 'pg';
 import { IBranchRepository } from '../../../modules/attendance/domain/repositories';
 import { Branch, CreateBranchInput, UpdateBranchInput } from '../../../modules/attendance/domain/entities';
+import { buildUpdateSet } from '../../../shared/utils/db';
 
 interface BranchRow {
   id: number;
@@ -54,19 +55,16 @@ export class PostgresBranchRepository implements IBranchRepository {
   }
 
   async update(id: number, input: UpdateBranchInput): Promise<Branch> {
-    const fields: string[] = [];
-    const values: unknown[] = [];
-    let paramIndex = 1;
+    const { setClauses, values } = buildUpdateSet([
+      ['name', input.name],
+      ['address', input.address],
+    ]);
 
-    if (input.name !== undefined) { fields.push(`name = $${paramIndex++}`); values.push(input.name); }
-    if (input.address !== undefined) { fields.push(`address = $${paramIndex++}`); values.push(input.address); }
+    if (setClauses.length === 0) return this.findById(id) as Promise<Branch>;
 
-    if (fields.length === 0) return this.findById(id) as Promise<Branch>;
-
-    values.push(id);
     const result: QueryResult<BranchRow> = await this.pool.query(
-      `UPDATE branches SET ${fields.join(', ')} WHERE id = $${paramIndex} AND deleted_at IS NULL RETURNING *`,
-      values,
+      `UPDATE branches SET ${setClauses.join(', ')} WHERE id = $${values.length + 1} AND deleted_at IS NULL RETURNING *`,
+      [...values, id],
     );
     return rowToEntity(result.rows[0]);
   }

@@ -2,6 +2,7 @@ import { Pool, QueryResult } from 'pg';
 import { IWifiRepository } from '../../../modules/attendance/domain/repositories';
 import { Wifi, CreateWifiInput } from '../../../modules/attendance/domain/entities';
 import { WIFI_MATCH_MODE_SSID, WIFI_MATCH_MODE_SSID_BSSID } from '../../../shared/constants';
+import { buildUpdateSet } from '../../../shared/utils/db';
 
 interface WifiRow {
   id: number;
@@ -89,22 +90,19 @@ export class PostgresWifiRepository implements IWifiRepository {
   }
 
   async update(id: number, input: Partial<CreateWifiInput>): Promise<Wifi> {
-    const fields: string[] = [];
-    const values: unknown[] = [];
-    let paramIndex = 1;
+    const { setClauses, values } = buildUpdateSet([
+      ['name', input.name],
+      ['ssid', input.ssid],
+      ['bssid', input.bssid],
+      ['match_mode', input.matchMode !== undefined ? matchModeToDb(input.matchMode) : undefined],
+      ['branch_id', input.branchId],
+    ]);
 
-    if (input.name !== undefined) { fields.push(`name = $${paramIndex++}`); values.push(input.name); }
-    if (input.ssid !== undefined) { fields.push(`ssid = $${paramIndex++}`); values.push(input.ssid); }
-    if (input.bssid !== undefined) { fields.push(`bssid = $${paramIndex++}`); values.push(input.bssid); }
-    if (input.matchMode !== undefined) { fields.push(`match_mode = $${paramIndex++}`); values.push(matchModeToDb(input.matchMode)); }
-    if (input.branchId !== undefined) { fields.push(`branch_id = $${paramIndex++}`); values.push(input.branchId); }
+    if (setClauses.length === 0) return this.findById(id) as Promise<Wifi>;
 
-    if (fields.length === 0) return this.findById(id) as Promise<Wifi>;
-
-    values.push(id);
     const result: QueryResult<WifiRow> = await this.pool.query(
-      `UPDATE wifis SET ${fields.join(', ')} WHERE id = $${paramIndex} AND deleted_at IS NULL RETURNING *`,
-      values,
+      `UPDATE wifis SET ${setClauses.join(', ')} WHERE id = $${values.length + 1} AND deleted_at IS NULL RETURNING *`,
+      [...values, id],
     );
     return rowToEntity(result.rows[0]);
   }

@@ -1,6 +1,7 @@
 import { Pool, QueryResult } from 'pg';
 import { IShiftRepository } from '../../../modules/attendance/domain/repositories';
 import { Shift, CreateShiftInput } from '../../../modules/attendance/domain/entities';
+import { buildUpdateSet } from '../../../shared/utils/db';
 
 interface ShiftRow {
   id: number;
@@ -83,34 +84,26 @@ export class PostgresShiftRepository implements IShiftRepository {
   }
 
   async update(id: number, input: Partial<CreateShiftInput>): Promise<Shift> {
-    const fields: string[] = [];
-    const values: unknown[] = [];
-    let paramIndex = 1;
+    const { setClauses, values } = buildUpdateSet([
+      ['name', input.name],
+      ['start_time', input.startTime],
+      ['end_time', input.endTime],
+      ['checkin_from', input.checkinFrom],
+      ['checkin_to', input.checkinTo],
+      ['checkout_from', input.checkoutFrom],
+      ['checkout_to', input.checkoutTo],
+      ['attendance_method', input.attendanceMethod !== undefined ? ATTENDANCE_METHOD_DB[input.attendanceMethod] : undefined],
+      ['weekdays', input.weekdays],
+      ['late_threshold_min', input.lateThresholdMin],
+      ['early_threshold_min', input.earlyThresholdMin],
+      ['work_credit', input.workCredit],
+    ]);
 
-    const map: [string | undefined, string][] = [
-      [input.name, 'name'], [input.startTime, 'start_time'], [input.endTime, 'end_time'],
-      [input.checkinFrom, 'checkin_from'], [input.checkinTo, 'checkin_to'],
-      [input.checkoutFrom, 'checkout_from'], [input.checkoutTo, 'checkout_to'],
-    ];
+    if (setClauses.length === 0) return this.findById(id) as Promise<Shift>;
 
-    for (const [val, col] of map) {
-      if (val !== undefined) { fields.push(`${col} = $${paramIndex++}`); values.push(val); }
-    }
-    if (input.attendanceMethod !== undefined) {
-      fields.push(`attendance_method = $${paramIndex++}`);
-      values.push(ATTENDANCE_METHOD_DB[input.attendanceMethod]);
-    }
-    if (input.weekdays !== undefined) { fields.push(`weekdays = $${paramIndex++}`); values.push(input.weekdays); }
-    if (input.lateThresholdMin !== undefined) { fields.push(`late_threshold_min = $${paramIndex++}`); values.push(input.lateThresholdMin); }
-    if (input.earlyThresholdMin !== undefined) { fields.push(`early_threshold_min = $${paramIndex++}`); values.push(input.earlyThresholdMin); }
-    if (input.workCredit !== undefined) { fields.push(`work_credit = $${paramIndex++}`); values.push(input.workCredit); }
-
-    if (fields.length === 0) return this.findById(id) as Promise<Shift>;
-
-    values.push(id);
     const result: QueryResult<ShiftRow> = await this.pool.query(
-      `UPDATE shifts SET ${fields.join(', ')} WHERE id = $${paramIndex} AND deleted_at IS NULL RETURNING *`,
-      values,
+      `UPDATE shifts SET ${setClauses.join(', ')} WHERE id = $${values.length + 1} AND deleted_at IS NULL RETURNING *`,
+      [...values, id],
     );
     return rowToEntity(result.rows[0]);
   }

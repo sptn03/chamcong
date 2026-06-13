@@ -1,6 +1,7 @@
 import { Pool, QueryResult } from 'pg';
 import { ILocationRepository } from '../../../modules/attendance/domain/repositories';
 import { Location, CreateLocationInput } from '../../../modules/attendance/domain/entities';
+import { buildUpdateSet } from '../../../shared/utils/db';
 
 interface LocationRow {
   id: number;
@@ -73,24 +74,21 @@ export class PostgresLocationRepository implements ILocationRepository {
   }
 
   async update(id: number, input: Partial<CreateLocationInput>): Promise<Location> {
-    const fields: string[] = [];
-    const values: unknown[] = [];
-    let paramIndex = 1;
+    const { setClauses, values } = buildUpdateSet([
+      ['name', input.name],
+      ['address', input.address],
+      ['lat', input.lat],
+      ['lng', input.lng],
+      ['radius_m', input.radiusM],
+      ['branch_id', input.branchId],
+      ['employee_id', input.employeeId],
+    ]);
 
-    if (input.name !== undefined) { fields.push(`name = $${paramIndex++}`); values.push(input.name); }
-    if (input.address !== undefined) { fields.push(`address = $${paramIndex++}`); values.push(input.address); }
-    if (input.lat !== undefined) { fields.push(`lat = $${paramIndex++}`); values.push(input.lat); }
-    if (input.lng !== undefined) { fields.push(`lng = $${paramIndex++}`); values.push(input.lng); }
-    if (input.radiusM !== undefined) { fields.push(`radius_m = $${paramIndex++}`); values.push(input.radiusM); }
-    if (input.branchId !== undefined) { fields.push(`branch_id = $${paramIndex++}`); values.push(input.branchId); }
-    if (input.employeeId !== undefined) { fields.push(`employee_id = $${paramIndex++}`); values.push(input.employeeId); }
+    if (setClauses.length === 0) return this.findById(id) as Promise<Location>;
 
-    if (fields.length === 0) return this.findById(id) as Promise<Location>;
-
-    values.push(id);
     const result: QueryResult<LocationRow> = await this.pool.query(
-      `UPDATE locations SET ${fields.join(', ')} WHERE id = $${paramIndex} AND deleted_at IS NULL RETURNING *`,
-      values,
+      `UPDATE locations SET ${setClauses.join(', ')} WHERE id = $${values.length + 1} AND deleted_at IS NULL RETURNING *`,
+      [...values, id],
     );
     return rowToEntity(result.rows[0]);
   }

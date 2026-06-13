@@ -1,6 +1,7 @@
 import { Pool, QueryResult } from 'pg';
 import { IDepartmentRepository } from '../../../modules/attendance/domain/repositories';
 import { Department, CreateDepartmentInput, UpdateDepartmentInput } from '../../../modules/attendance/domain/entities';
+import { buildUpdateSet } from '../../../shared/utils/db';
 
 interface DepartmentRow {
   id: number;
@@ -62,19 +63,16 @@ export class PostgresDepartmentRepository implements IDepartmentRepository {
   }
 
   async update(id: number, input: UpdateDepartmentInput): Promise<Department> {
-    const fields: string[] = [];
-    const values: unknown[] = [];
-    let paramIndex = 1;
+    const { setClauses, values } = buildUpdateSet([
+      ['name', input.name],
+      ['branch_id', input.branchId],
+    ]);
 
-    if (input.name !== undefined) { fields.push(`name = $${paramIndex++}`); values.push(input.name); }
-    if (input.branchId !== undefined) { fields.push(`branch_id = $${paramIndex++}`); values.push(input.branchId); }
+    if (setClauses.length === 0) return this.findById(id) as Promise<Department>;
 
-    if (fields.length === 0) return this.findById(id) as Promise<Department>;
-
-    values.push(id);
     const result: QueryResult<DepartmentRow> = await this.pool.query(
-      `UPDATE departments SET ${fields.join(', ')} WHERE id = $${paramIndex} AND deleted_at IS NULL RETURNING *`,
-      values,
+      `UPDATE departments SET ${setClauses.join(', ')} WHERE id = $${values.length + 1} AND deleted_at IS NULL RETURNING *`,
+      [...values, id],
     );
     return rowToEntity(result.rows[0]);
   }

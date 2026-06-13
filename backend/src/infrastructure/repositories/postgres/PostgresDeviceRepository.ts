@@ -171,35 +171,33 @@ export class PostgresDeviceRepository implements IDeviceRepository {
   }
 
   async updateDeviceDetails(id: number, details: Partial<RegisterDeviceInput> & { status?: Device['status'] }): Promise<void> {
-    const fields: string[] = [];
+    const setClauses: string[] = [];
     const values: unknown[] = [];
-    let paramIndex = 1;
 
     if (details.status !== undefined) {
       const statusDb = details.status === 'pending' ? 1
         : details.status === 'approved' ? 2
         : details.status === 'rejected' ? 3
         : 4;
-      fields.push(`status = $${paramIndex++}`);
+      setClauses.push(`status = $${values.length + 1}`);
       values.push(statusDb);
     }
-    if (details.deviceName !== undefined) { fields.push(`device_name = COALESCE($${paramIndex++}, device_name)`); values.push(details.deviceName); }
-    if (details.platform !== undefined) { 
-      fields.push(`platform = COALESCE($${paramIndex++}, platform)`); 
-      values.push(PLATFORM_DB[details.platform] ?? details.platform); 
+    if (details.deviceName !== undefined) { setClauses.push(`device_name = COALESCE($${values.length + 1}, device_name)`); values.push(details.deviceName); }
+    if (details.platform !== undefined) {
+      setClauses.push(`platform = COALESCE($${values.length + 1}, platform)`);
+      values.push(PLATFORM_DB[details.platform] ?? details.platform);
     }
-    if (details.osVersion !== undefined) { fields.push(`os_version = COALESCE($${paramIndex++}, os_version)`); values.push(details.osVersion); }
-    if (details.appVersion !== undefined) { fields.push(`app_version = COALESCE($${paramIndex++}, app_version)`); values.push(details.appVersion); }
+    if (details.osVersion !== undefined) { setClauses.push(`os_version = COALESCE($${values.length + 1}, os_version)`); values.push(details.osVersion); }
+    if (details.appVersion !== undefined) { setClauses.push(`app_version = COALESCE($${values.length + 1}, app_version)`); values.push(details.appVersion); }
 
-    fields.push(`last_login_at = NOW()`);
-    fields.push(`updated_at = NOW()`);
+    setClauses.push(`last_login_at = NOW()`);
+    setClauses.push(`updated_at = NOW()`);
 
-    if (fields.length === 2) return; // only last_login_at and updated_at
+    if (setClauses.length === 2) return; // only last_login_at and updated_at
 
-    values.push(id);
     await this.pool.query(
-      `UPDATE devices SET ${fields.join(', ')} WHERE id = $${paramIndex}`,
-      values
+      `UPDATE devices SET ${setClauses.join(', ')} WHERE id = $${values.length + 1}`,
+      [...values, id],
     );
   }
 

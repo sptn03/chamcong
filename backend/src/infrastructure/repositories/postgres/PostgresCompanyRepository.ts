@@ -1,6 +1,7 @@
 import { Pool, QueryResult } from 'pg';
 import { ICompanyRepository } from '../../../modules/attendance/domain/repositories';
 import { Company, CreateCompanyInput, UpdateCompanyInput } from '../../../modules/attendance/domain/entities';
+import { buildUpdateSet } from '../../../shared/utils/db';
 
 interface CompanyRow {
   id: number;
@@ -61,31 +62,19 @@ export class PostgresCompanyRepository implements ICompanyRepository {
   }
 
   async update(id: number, input: UpdateCompanyInput): Promise<Company> {
-    const fields: string[] = [];
-    const values: unknown[] = [];
-    let paramIndex = 1;
+    const { setClauses, values } = buildUpdateSet([
+      ['name', input.name],
+      ['code', input.code],
+      ['timezone', input.timezone],
+    ]);
 
-    if (input.name !== undefined) {
-      fields.push(`name = $${paramIndex++}`);
-      values.push(input.name);
-    }
-    if (input.code !== undefined) {
-      fields.push(`code = $${paramIndex++}`);
-      values.push(input.code);
-    }
-    if (input.timezone !== undefined) {
-      fields.push(`timezone = $${paramIndex++}`);
-      values.push(input.timezone);
-    }
-
-    if (fields.length === 0) {
+    if (setClauses.length === 0) {
       return this.findById(id) as Promise<Company>;
     }
 
-    values.push(id);
     const result: QueryResult<CompanyRow> = await this.pool.query(
-      `UPDATE companies SET ${fields.join(', ')} WHERE id = $${paramIndex} AND deleted_at IS NULL RETURNING *`,
-      values,
+      `UPDATE companies SET ${setClauses.join(', ')} WHERE id = $${values.length + 1} AND deleted_at IS NULL RETURNING *`,
+      [...values, id],
     );
     return rowToEntity(result.rows[0]);
   }

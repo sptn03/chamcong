@@ -2,6 +2,7 @@ import { Pool, QueryResult } from 'pg';
 import { IEmployeeRepository } from '../../../modules/attendance/domain/repositories';
 import { Employee, CreateEmployeeInput, UpdateEmployeeInput } from '../../../modules/attendance/domain/entities';
 import { EMPLOYEE_STATUS_ACTIVE } from '../../../shared/constants';
+import { buildUpdateSet } from '../../../shared/utils/db';
 
 interface EmployeeRow {
   id: number;
@@ -114,23 +115,20 @@ export class PostgresEmployeeRepository implements IEmployeeRepository {
   }
 
   async update(id: number, input: UpdateEmployeeInput): Promise<Employee> {
-    const fields: string[] = [];
-    const values: unknown[] = [];
-    let paramIndex = 1;
+    const { setClauses, values } = buildUpdateSet([
+      ['branch_id', input.branchId],
+      ['department_id', input.departmentId],
+      ['title', input.title],
+      ['status', input.status !== undefined ? statusToDb(input.status) : undefined],
+    ]);
 
-    if (input.branchId !== undefined) { fields.push(`branch_id = $${paramIndex++}`); values.push(input.branchId); }
-    if (input.departmentId !== undefined) { fields.push(`department_id = $${paramIndex++}`); values.push(input.departmentId); }
-    if (input.title !== undefined) { fields.push(`title = $${paramIndex++}`); values.push(input.title); }
-    if (input.status !== undefined) { fields.push(`status = $${paramIndex++}`); values.push(statusToDb(input.status)); }
-
-    if (fields.length === 0) {
+    if (setClauses.length === 0) {
       return (await this.findById(id))!;
     }
 
-    values.push(id);
     await this.pool.query(
-      `UPDATE employees SET ${fields.join(', ')} WHERE id = $${paramIndex} AND deleted_at IS NULL`,
-      values,
+      `UPDATE employees SET ${setClauses.join(', ')} WHERE id = $${values.length + 1} AND deleted_at IS NULL`,
+      [...values, id],
     );
     return (await this.findById(id))!;
   }

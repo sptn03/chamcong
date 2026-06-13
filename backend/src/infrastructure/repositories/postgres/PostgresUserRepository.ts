@@ -1,6 +1,7 @@
 import { Pool, QueryResult } from 'pg';
 import { IUserRepository } from '../../../modules/attendance/domain/repositories';
 import { User } from '../../../modules/attendance/domain/entities';
+import { buildUpdateSet } from '../../../shared/utils/db';
 
 interface UserRow {
   id: number;
@@ -84,36 +85,29 @@ export class PostgresUserRepository implements IUserRepository {
   }
 
   async update(id: number, input: Partial<User> & { password?: string }): Promise<User> {
-    const fields: string[] = [];
-    const values: unknown[] = [];
-    let paramIndex = 1;
+    // buildUpdateSet cho fields đơn giản
+    const { setClauses, values } = buildUpdateSet([
+      ['full_name', input.fullName],
+      ['phone', input.phone],
+      ['email', input.email],
+      ['birthday', input.birthday],
+      ['gender', input.gender !== undefined ? (input.gender === 'male' ? 1 : input.gender === 'female' ? 2 : 3) : undefined],
+      ['is_hunonic', input.isHunonic],
+      ['status', input.status !== undefined ? (input.status === 'locked' ? 2 : 1) : undefined],
+    ]);
 
-    if (input.fullName !== undefined) { fields.push(`full_name = $${paramIndex++}`); values.push(input.fullName); }
-    if (input.phone !== undefined) { fields.push(`phone = $${paramIndex++}`); values.push(input.phone); }
-    if (input.email !== undefined) { fields.push(`email = $${paramIndex++}`); values.push(input.email); }
-    if (input.birthday !== undefined) { fields.push(`birthday = $${paramIndex++}`); values.push(input.birthday); }
-    if (input.gender !== undefined) { 
-      fields.push(`gender = $${paramIndex++}`); 
-      values.push(input.gender === 'male' ? 1 : input.gender === 'female' ? 2 : 3); 
-    }
-    if (input.isHunonic !== undefined) { fields.push(`is_hunonic = $${paramIndex++}`); values.push(input.isHunonic); }
-    if (input.status !== undefined) {
-      fields.push(`status = $${paramIndex++}`);
-      values.push(input.status === 'locked' ? 2 : 1);
-    }
     if (input.password !== undefined && input.password !== '') {
-      fields.push(`pass = crypt($${paramIndex++}, gen_salt('bf'))`);
+      setClauses.push(`pass = crypt($${values.length + 1}, gen_salt('bf'))`);
       values.push(input.password);
     }
 
-    if (fields.length === 0) {
+    if (setClauses.length === 0) {
       return (await this.findById(id))!;
     }
 
-    values.push(id);
     const result: QueryResult<UserRow> = await this.pool.query(
-      `UPDATE users SET ${fields.join(', ')} WHERE id = $${paramIndex} RETURNING *`,
-      values
+      `UPDATE users SET ${setClauses.join(', ')} WHERE id = $${values.length + 1} RETURNING *`,
+      [...values, id],
     );
     return rowToEntity(result.rows[0]);
   }

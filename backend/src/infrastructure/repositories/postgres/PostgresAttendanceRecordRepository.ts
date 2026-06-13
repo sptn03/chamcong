@@ -1,6 +1,7 @@
 import { Pool, QueryResult } from 'pg';
 import { IAttendanceRecordRepository, AttendanceRecordFilter, PaginatedResult } from '../../../modules/attendance/domain/repositories';
 import { AttendanceRecord, CreateAttendanceRecordInput, UpdateAttendanceRecordInput } from '../../../modules/attendance/domain/entities';
+import { buildUpdateSet } from '../../../shared/utils/db';
 import {
   APPROVAL_STATUS_APPROVED,
   APPROVAL_STATUS_REJECTED,
@@ -168,33 +169,24 @@ export class PostgresAttendanceRecordRepository implements IAttendanceRecordRepo
   }
 
   async update(id: number, input: UpdateAttendanceRecordInput): Promise<AttendanceRecord> {
-    const fields: string[] = [];
-    const values: unknown[] = [];
-    let paramIndex = 1;
+    const { setClauses, values } = buildUpdateSet([
+      ['checkin_at', input.checkinAt],
+      ['checkout_at', input.checkoutAt],
+      ['approval_status', input.approvalStatus !== undefined ? APPROVAL_STATUS_DB[input.approvalStatus] : undefined],
+      ['work_status', input.workStatus !== undefined ? WORK_STATUS_DB[input.workStatus] : undefined],
+      ['late_min', input.lateMin],
+      ['early_min', input.earlyMin],
+      ['actual_work_minutes', input.actualWorkMinutes],
+      ['work_credit', input.workCredit],
+    ]);
 
-    if (input.checkinAt !== undefined) { fields.push(`checkin_at = $${paramIndex++}`); values.push(input.checkinAt); }
-    if (input.checkoutAt !== undefined) { fields.push(`checkout_at = $${paramIndex++}`); values.push(input.checkoutAt); }
-    if (input.approvalStatus !== undefined) {
-      fields.push(`approval_status = $${paramIndex++}`);
-      values.push(APPROVAL_STATUS_DB[input.approvalStatus]);
-    }
-    if (input.workStatus !== undefined) {
-      fields.push(`work_status = $${paramIndex++}`);
-      values.push(WORK_STATUS_DB[input.workStatus]);
-    }
-    if (input.lateMin !== undefined) { fields.push(`late_min = $${paramIndex++}`); values.push(input.lateMin); }
-    if (input.earlyMin !== undefined) { fields.push(`early_min = $${paramIndex++}`); values.push(input.earlyMin); }
-    if (input.actualWorkMinutes !== undefined) { fields.push(`actual_work_minutes = $${paramIndex++}`); values.push(input.actualWorkMinutes); }
-    if (input.workCredit !== undefined) { fields.push(`work_credit = $${paramIndex++}`); values.push(input.workCredit); }
-
-    if (fields.length === 0) {
+    if (setClauses.length === 0) {
       return this.findById(id) as Promise<AttendanceRecord>;
     }
 
-    values.push(id);
     const result: QueryResult<AttendanceRecordRow> = await this.pool.query(
-      `UPDATE attendance_records SET ${fields.join(', ')} WHERE id = $${paramIndex} RETURNING *`,
-      values,
+      `UPDATE attendance_records SET ${setClauses.join(', ')} WHERE id = $${values.length + 1} RETURNING *`,
+      [...values, id],
     );
     return rowToEntity(result.rows[0]);
   }
