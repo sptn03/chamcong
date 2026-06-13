@@ -1,4 +1,4 @@
-export type AttendanceMethod = 'gps' | 'wifi' | 'gps_wifi';
+export type AttendanceMethod = 'gps' | 'wifi' | 'gps_wifi' | 'gps_or_wifi';
 
 export interface Shift {
   id: number;

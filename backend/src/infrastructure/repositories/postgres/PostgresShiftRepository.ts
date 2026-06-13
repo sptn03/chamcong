@@ -23,8 +23,8 @@ interface ShiftRow {
   updated_at: Date;
 }
 
-const ATTENDANCE_METHOD_MAP: Record<number, string> = { 1: 'gps', 2: 'wifi', 3: 'gps_wifi', 4: 'gps_or_wifi' };
-const ATTENDANCE_METHOD_DB: Record<string, number> = { gps: 1, wifi: 2, gps_wifi: 3, gps_or_wifi: 4 };
+const ATTENDANCE_METHOD_MAP: Record<number, string> = { 1: 'gps', 2: 'wifi', 3: 'gps_or_wifi', 4: 'gps_wifi' };
+const ATTENDANCE_METHOD_DB: Record<string, number> = { gps: 1, wifi: 2, gps_or_wifi: 3, gps_wifi: 4 };
 
 function rowToEntity(row: ShiftRow): Shift {
   return {
@@ -57,6 +57,15 @@ export class PostgresShiftRepository implements IShiftRepository {
       [id],
     );
     return result.rows.length ? rowToEntity(result.rows[0]) : null;
+  }
+
+  async findByIds(ids: number[]): Promise<Shift[]> {
+    if (ids.length === 0) return [];
+    const result: QueryResult<ShiftRow> = await this.pool.query(
+      'SELECT * FROM shifts WHERE id = ANY($1) AND deleted_at IS NULL',
+      [ids],
+    );
+    return result.rows.map(rowToEntity);
   }
 
   async findByCompanyId(companyId: number): Promise<Shift[]> {

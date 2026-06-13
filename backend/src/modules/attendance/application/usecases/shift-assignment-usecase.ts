@@ -46,12 +46,10 @@ export class ShiftAssignmentUsecase {
   }
 
   private async enrichAssignments(entities: any[]): Promise<ShiftAssignmentDto[]> {
-    const result: ShiftAssignmentDto[] = [];
-    for (const entity of entities) {
-      const shift = await this.shiftRepo.findById(entity.shiftId);
-      result.push(shiftAssignmentToDto(entity, shift));
-    }
-    return result;
+    const shiftIds = [...new Set(entities.map(e => e.shiftId))];
+    const shifts = await this.shiftRepo.findByIds(shiftIds);
+    const shiftMap = new Map(shifts.map(s => [s.id, s]));
+    return entities.map(entity => shiftAssignmentToDto(entity, shiftMap.get(entity.shiftId)));
   }
 
   async getById(id: number): Promise<ShiftAssignmentDto> {
@@ -96,9 +94,13 @@ export class ShiftAssignmentUsecase {
     // Lấy danh sách các bản ghi chấm công của ngày hôm nay để xem có ca nào đang dở dang (đã checkin nhưng chưa checkout)
     const activeRecords = isToday ? await this.recordRepo.findByEmployeeAndDate(employeeId, date) : [];
 
+    const shiftIds = [...new Set(entities.map(e => e.shiftId))];
+    const shifts = await this.shiftRepo.findByIds(shiftIds);
+    const shiftMap = new Map(shifts.map(s => [s.id, s]));
+
     const result: ShiftAssignmentDto[] = [];
     for (const entity of entities) {
-      const shift = await this.shiftRepo.findById(entity.shiftId);
+      const shift = shiftMap.get(entity.shiftId);
       if (!shift) continue;
 
       if (isToday) {
