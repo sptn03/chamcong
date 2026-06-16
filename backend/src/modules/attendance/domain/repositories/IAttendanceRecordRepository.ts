@@ -26,6 +26,7 @@ export interface PaginatedResult<T> {
 export interface IAttendanceRecordRepository {
   findById(id: number): Promise<AttendanceRecord | null>;
   findByEmployeeAndDate(employeeId: number, workDate: string): Promise<AttendanceRecord[]>;
+  findByEmployeeAndDateRange(employeeId: number, fromDate: string, toDate: string): Promise<AttendanceRecord[]>;
   findFiltered(filter: AttendanceRecordFilter): Promise<PaginatedResult<AttendanceRecord>>;
   create(input: CreateAttendanceRecordInput): Promise<AttendanceRecord>;
   update(id: number, input: UpdateAttendanceRecordInput): Promise<AttendanceRecord>;

@@ -158,4 +158,24 @@ export class PostgresShiftAssignmentRepository implements IShiftAssignmentReposi
     );
     return result.rows.map(rowToEntity);
   }
+
+  async findEffectiveForRange(employeeId: number, fromDate: string, toDate: string): Promise<ShiftAssignment[]> {
+    const result: QueryResult<ShiftAssignmentRow> = await this.pool.query(
+      `SELECT sa.* FROM shift_assignments sa
+       LEFT JOIN employees e ON e.id = $1
+       WHERE sa.deleted_at IS NULL
+         AND (sa.starts_on IS NULL OR sa.starts_on <= $3::date)
+         AND (sa.ends_on IS NULL OR sa.ends_on >= $2::date)
+         AND (
+           (sa.scope_type = $4 AND sa.employee_id = $1)
+           OR (sa.scope_type = $5 AND sa.department_id = e.department_id)
+           OR (sa.scope_type = $6 AND sa.branch_id = e.branch_id)
+           OR (sa.scope_type = $7 AND sa.company_id = e.company_id)
+         )`,
+      [employeeId, fromDate, toDate,
+       SHIFT_ASSIGNMENT_SCOPE_EMPLOYEE, SHIFT_ASSIGNMENT_SCOPE_DEPARTMENT,
+       SHIFT_ASSIGNMENT_SCOPE_BRANCH, SHIFT_ASSIGNMENT_SCOPE_COMPANY],
+    );
+    return result.rows.map(rowToEntity);
+  }
 }

@@ -10,6 +10,7 @@ export function createAttendanceRouter(controller: AttendanceController): Router
   router.post('/checkout', controller.checkout);
   router.post('/approve', controller.approve);
   router.post('/edit', controller.edit);
+  router.get('/calendar', controller.getCalendar);
 
   return router;
 }

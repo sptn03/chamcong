@@ -9,6 +9,8 @@ import {
   IWifiRepository,
 } from '../../domain/repositories';
 import {
+  AttendanceRecord,
+  Shift,
   CreateAttendanceRecordInput,
   AttendanceSource,
   UpdateAttendanceRecordInput,
@@ -762,6 +764,131 @@ export class AttendanceUsecase {
     const dto = attendanceRecordToDto(updated);
     dto.adminNote = reason;
     return dto;
+  }
+
+  /** GET /api/attendance/calendar?fromDate=&toDate=&employeeId=
+   *  Trả về từng ngày có bao nhiêu ca được gán, trạng thái ca (muộn/sớm/bình thường) để làm lịch.
+   */
+  async getCalendar(
+    filter: { fromDate: string; toDate: string; employeeId?: number },
+    context?: { userId: number; activeEmployeeId: number | null }
+  ) {
+    // Xác định employeeId
+    let employeeId = filter.employeeId;
+    if (!employeeId && context?.activeEmployeeId) {
+      employeeId = context.activeEmployeeId;
+    }
+    if (!employeeId) {
+      throw new ValidationError('Thiếu thông tin nhân viên');
+    }
+
+    // Lấy thông tin nhân viên (để biết companyId)
+    const employee = await this.employeeRepo.findById(employeeId);
+    if (!employee) throw new NotFoundError('Không tìm thấy nhân viên');
+
+    // Lấy tất cả bản ghi công trong khoảng ngày
+    const records = await this.recordRepo.findByEmployeeAndDateRange(
+      employeeId,
+      filter.fromDate,
+      filter.toDate,
+    );
+
+    // Lấy tất cả ca của công ty (để có weekdays bitmask)
+    const companyShifts = await this.shiftRepo.findByCompanyId(employee.companyId);
+    const shiftDetailMap: Record<number, Shift> = {};
+    for (const s of companyShifts) {
+      shiftDetailMap[s.id] = s;
+    }
+
+    // Lấy tất cả shift assignments hiệu lực trong khoảng ngày
+    const assignments = await this.shiftAssignmentRepo.findEffectiveForRange(
+      employeeId,
+      filter.fromDate,
+      filter.toDate,
+    );
+
+    // Nhóm records theo ngày
+    const dateRecordMap: Record<string, Map<number, AttendanceRecord>> = {};
+    for (const r of records) {
+      if (!dateRecordMap[r.workDate]) {
+        dateRecordMap[r.workDate] = new Map();
+      }
+      dateRecordMap[r.workDate].set(r.shiftId, r);
+    }
+
+    // WEEKDAY_BITS: [Sun=64, Mon=1, Tue=2, Wed=4, Thu=8, Fri=16, Sat=32]
+    const WEEKDAY_BITS = [64, 1, 2, 4, 8, 16, 32];
+
+    // Sinh tất cả các ngày trong khoảng
+    const result: any[] = [];
+    const current = new Date(filter.fromDate + 'T00:00:00+07:00');
+    const end = new Date(filter.toDate + 'T00:00:00+07:00');
+
+    while (current <= end) {
+      const dateStr = current.toISOString().slice(0, 10);
+      const dayOfWeek = current.getDay();
+      const weekdayBit = WEEKDAY_BITS[dayOfWeek];
+      const dayRecordMap = dateRecordMap[dateStr] || new Map();
+
+      // Xác định các shift được gán trong ngày này
+      const assignedShiftIds = new Set<number>();
+      for (const a of assignments) {
+        // Kiểm tra assignment có hiệu lực trong ngày này không
+        if (a.startsOn && a.startsOn > dateStr) continue;
+        if (a.endsOn && a.endsOn < dateStr) continue;
+        assignedShiftIds.add(a.shiftId);
+      }
+
+      // Lọc shift có weekdays phù hợp, xây danh sách shifts cho ngày
+      const shiftsForDay: any[] = [];
+      for (const shiftId of assignedShiftIds) {
+        const shift = shiftDetailMap[shiftId];
+        if (!shift) continue;
+        // Kiểm tra weekday bitmask
+        if ((shift.weekdays & weekdayBit) === 0) continue;
+
+        const record = dayRecordMap.get(shiftId);
+        if (record) {
+          shiftsForDay.push({
+            shiftId: shift.id,
+            shiftName: shift.name,
+            workStatus: record.workStatus,
+            lateMin: record.lateMin,
+            earlyMin: record.earlyMin,
+            checkinAt: record.checkinAt ? moment(record.checkinAt).utcOffset('+07:00').format('HH:mm') : null,
+            checkoutAt: record.checkoutAt ? moment(record.checkoutAt).utcOffset('+07:00').format('HH:mm') : null,
+            attendanceRecordId: record.id,
+            approvalStatus: record.approvalStatus,
+            actualWorkMinutes: record.actualWorkMinutes,
+            workCredit: Number(record.workCredit),
+          });
+        } else {
+          shiftsForDay.push({
+            shiftId: shift.id,
+            shiftName: shift.name,
+            workStatus: 'absent',
+            lateMin: 0,
+            earlyMin: 0,
+            checkinAt: null,
+            checkoutAt: null,
+            attendanceRecordId: null,
+            approvalStatus: null,
+            actualWorkMinutes: 0,
+            workCredit: 0,
+          });
+        }
+      }
+
+      result.push({
+        date: dateStr,
+        dayOfWeek,
+        shifts: shiftsForDay,
+        totalShifts: shiftsForDay.length,
+      });
+      current.setDate(current.getDate() + 1);
+    }
+
+    return result;
   }
 
 }

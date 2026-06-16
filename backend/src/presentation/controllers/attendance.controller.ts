@@ -81,4 +81,25 @@ export class AttendanceController {
     const result = await this.attendanceUsecase.edit(req.body, req.userId!);
     res.json(ok(result, 'Sửa công thành công'));
   });
+
+  /** GET /api/attendance/calendar?fromDate=&toDate=&employeeId=
+   *  Trả về từng ngày có bao nhiêu ca, trạng thái ca (muộn/sớm/bình thường) để làm lịch.
+   */
+  getCalendar = asyncHandler(async (req: Request, res: Response) => {
+    const { fromDate, toDate } = req.query;
+    if (!fromDate || !toDate) {
+      res.status(400).json({ message: 'Thiếu tham số fromDate hoặc toDate' });
+      return;
+    }
+    const filter = {
+      fromDate: fromDate as string,
+      toDate: toDate as string,
+      employeeId: req.query.employeeId ? parseInt(req.query.employeeId as string, 10) : undefined,
+    };
+    const result = await this.attendanceUsecase.getCalendar(filter, {
+      userId: req.userId!,
+      activeEmployeeId: req.activeEmployeeId || null,
+    });
+    res.json(ok(result));
+  });
 }

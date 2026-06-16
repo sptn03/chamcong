@@ -12,4 +12,6 @@ export interface IShiftAssignmentRepository {
   softDelete(id: number): Promise<void>;
   /** Get effective shift assignments for an employee on a given date */
   findEffective(employeeId: number, date: string): Promise<ShiftAssignment[]>;
+  /** Get effective shift assignments for an employee within a date range */
+  findEffectiveForRange(employeeId: number, fromDate: string, toDate: string): Promise<ShiftAssignment[]>;
 }

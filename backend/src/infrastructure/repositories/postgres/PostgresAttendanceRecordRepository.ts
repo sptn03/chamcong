@@ -95,6 +95,14 @@ export class PostgresAttendanceRecordRepository implements IAttendanceRecordRepo
     return result.rows.map(rowToEntity);
   }
 
+  async findByEmployeeAndDateRange(employeeId: number, fromDate: string, toDate: string): Promise<AttendanceRecord[]> {
+    const result: QueryResult<AttendanceRecordRow> = await this.pool.query(
+      'SELECT * FROM attendance_records WHERE employee_id = $1 AND work_date >= $2 AND work_date <= $3 ORDER BY work_date ASC, shift_id ASC',
+      [employeeId, fromDate, toDate],
+    );
+    return result.rows.map(rowToEntity);
+  }
+
   async findFiltered(filter: AttendanceRecordFilter): Promise<PaginatedResult<AttendanceRecord>> {
     const conditions: string[] = [];
     const values: unknown[] = [];
