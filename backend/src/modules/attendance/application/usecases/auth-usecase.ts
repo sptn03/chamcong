@@ -211,6 +211,9 @@ export class AuthUsecase {
   private async registerOrUpdateDevice(userId: number, input: any): Promise<number | null> {
     if (!input.deviceUid || !input.platform) return null;
 
+    // Chuẩn hóa platform về chữ thường để khớp với PLATFORM_DB
+    input.platform = input.platform.toLowerCase();
+
     // Kiểm tra user đã có device approved nào chưa
     const approvedCount = await this.deviceRepo.countApprovedDevices(userId);
     const existingDevice = await this.deviceRepo.findByUid(userId, input.deviceUid);

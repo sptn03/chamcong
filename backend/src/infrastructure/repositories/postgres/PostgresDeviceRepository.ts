@@ -121,7 +121,7 @@ export class PostgresDeviceRepository implements IDeviceRepository {
          user_agent = EXCLUDED.user_agent,
          updated_at = NOW()
        RETURNING *`,
-      [input.userId, input.deviceUid, input.deviceName ?? null, PLATFORM_DB[input.platform],
+      [input.userId, input.deviceUid, input.deviceName ?? null, PLATFORM_DB[input.platform] ?? 1,
        input.osVersion ?? null, input.appVersion ?? null, input.pushToken ?? null,
        input.ipAddress ?? null, input.userAgent ?? null],
     );

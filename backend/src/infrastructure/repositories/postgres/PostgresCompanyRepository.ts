@@ -51,6 +51,17 @@ export class PostgresCompanyRepository implements ICompanyRepository {
     return result.rows.map(rowToEntity);
   }
 
+  async findByUserId(userId: number): Promise<Company[]> {
+    const result: QueryResult<CompanyRow> = await this.pool.query(
+      `SELECT c.* FROM companies c
+       INNER JOIN company_memberships cm ON cm.company_id = c.id
+       WHERE cm.user_id = $1 AND c.deleted_at IS NULL AND cm.deleted_at IS NULL
+       ORDER BY c.name`,
+      [userId],
+    );
+    return result.rows.map(rowToEntity);
+  }
+
   async create(input: CreateCompanyInput): Promise<Company> {
     const result: QueryResult<CompanyRow> = await this.pool.query(
       `INSERT INTO companies (name, code, timezone)

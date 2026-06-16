@@ -16,7 +16,7 @@ export class CompanyController {
       const result = await this.companyUsecase.getById(id);
       res.json(ok(result));
     } else {
-      const result = await this.companyUsecase.getAll();
+      const result = await this.companyUsecase.getAll(req.userId);
       res.json(ok(result));
     }
   });

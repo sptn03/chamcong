@@ -33,8 +33,10 @@ export class CompanyUsecase {
     return companyToDto(entity);
   }
 
-  async getAll(): Promise<CompanyDto[]> {
-    const entities = await this.companyRepo.findAll();
+  async getAll(userId?: number): Promise<CompanyDto[]> {
+    const entities = userId
+      ? await this.companyRepo.findByUserId(userId)
+      : await this.companyRepo.findAll();
     return entities.map(companyToDto);
   }
 
