@@ -5,6 +5,7 @@ export function createAttendanceRouter(controller: AttendanceController): Router
   const router = Router();
 
   router.get('/', controller.getAll);
+  router.get('/home', controller.getHomeData);
   router.get('/evidences', controller.getEvidences);
   router.post('/checkin', controller.checkin);
   router.post('/checkout', controller.checkout);

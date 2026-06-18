@@ -102,4 +102,16 @@ export class AttendanceController {
     });
     res.json(ok(result));
   });
+
+  /** GET /api/attendance/home - Dữ liệu tổng hợp cho màn hình Home (ca làm + chấm công hôm nay + lịch) */
+  getHomeData = asyncHandler(async (req: Request, res: Response) => {
+    const result = await this.attendanceUsecase.getHomeData({
+      userId: req.userId!,
+      activeEmployeeId: req.activeEmployeeId || null,
+      activeCompanyId: req.activeCompanyId || null,
+      startDate: req.query.startDate as string | undefined,
+      endDate: req.query.endDate as string | undefined,
+    });
+    res.json(ok(result));
+  });
 }

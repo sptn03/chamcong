@@ -15,7 +15,7 @@ import {
   AttendanceSource,
   UpdateAttendanceRecordInput,
 } from '../../domain/entities';
-import { AttendanceRecordDto, attendanceRecordToDto, CheckinDto, CheckoutDto, AttendanceFilterDto, evidenceToDto } from '../dto';
+import { AttendanceRecordDto, attendanceRecordToDto, CheckinDto, CheckoutDto, AttendanceFilterDto, evidenceToDto, shiftToDto, ShiftDto, shiftAssignmentToDto } from '../dto';
 import { ValidationError, NotFoundError } from '../../../../shared/errors';
 import { haversineDistance } from '../../../../shared/utils/geo';
 import { getMomentFromInterval, getShiftDurationMinutes, calculateWorkCredit } from '../../../../shared/utils/shift-time';
@@ -821,12 +821,12 @@ export class AttendanceUsecase {
 
     // Sinh tất cả các ngày trong khoảng
     const result: any[] = [];
-    const current = new Date(filter.fromDate + 'T00:00:00+07:00');
-    const end = new Date(filter.toDate + 'T00:00:00+07:00');
+    const current = moment(filter.fromDate + 'T00:00:00+07:00').utcOffset('+07:00');
+    const end = moment(filter.toDate + 'T00:00:00+07:00').utcOffset('+07:00');
 
-    while (current <= end) {
-      const dateStr = current.toISOString().slice(0, 10);
-      const dayOfWeek = current.getDay();
+    while (current.isSameOrBefore(end)) {
+      const dateStr = current.format('YYYY-MM-DD');
+      const dayOfWeek = current.day();
       const weekdayBit = WEEKDAY_BITS[dayOfWeek];
       const dayRecordMap = dateRecordMap[dateStr] || new Map();
 
@@ -885,10 +885,151 @@ export class AttendanceUsecase {
         shifts: shiftsForDay,
         totalShifts: shiftsForDay.length,
       });
-      current.setDate(current.getDate() + 1);
+      current.add(1, 'day');
     }
 
     return result;
+  }
+
+  /**
+   * GET /api/attendance/home - Dữ liệu tổng hợp cho màn hình Home
+   * Trả về danh sách ca làm + chấm công trong ca + lịch tháng trong 1 lần gọi
+   */
+  async getHomeData(context: { userId: number; activeEmployeeId: number | null; activeCompanyId: number | null; startDate?: string; endDate?: string }) {
+    const now = moment().utcOffset('+07:00');
+    const today = now.format('YYYY-MM-DD');
+    const firstOfMonth = context.startDate || now.clone().startOf('isoWeek').format('YYYY-MM-DD');
+    const lastOfMonth = context.endDate || now.clone().endOf('isoWeek').format('YYYY-MM-DD');
+
+    // 1. Lấy tất cả ca làm (có lọc theo giờ như ShiftAssignmentUsecase.getEffective)
+    let shifts: ShiftDto[] = [];
+    let activeRecords: AttendanceRecordDto[] = [];
+    if (context.activeEmployeeId) {
+      const entities = await this.shiftAssignmentRepo.findEffective(context.activeEmployeeId, today);
+      const activeRecs = await this.recordRepo.findByEmployeeAndDate(context.activeEmployeeId, today);
+
+      const shiftIds = [...new Set(entities.map(e => e.shiftId))];
+      const shiftEntities = await this.shiftRepo.findByIds(shiftIds);
+      const shiftMap = new Map(shiftEntities.map(s => [s.id, s]));
+
+      for (const entity of entities) {
+        const shift = shiftMap.get(entity.shiftId);
+        if (!shift) continue;
+
+        // Nếu có check-in chưa checkout → luôn hiển thị ca này
+        const hasUnfinishedCheckin = activeRecs.some(
+          r => Number(r.shiftId) === Number(shift.id) && r.checkinAt && !r.checkoutAt
+        );
+        if (hasUnfinishedCheckin) {
+          shifts.push(shiftToDto(shift));
+          continue;
+        }
+
+        // Lọc theo khung giờ hiện tại
+        const checkinFromTime = getMomentFromInterval(today, shift.checkinFrom as any);
+        const checkoutToTime = getMomentFromInterval(today, shift.checkoutTo as any);
+        if (now.isSameOrAfter(checkinFromTime) && now.isSameOrBefore(checkoutToTime)) {
+          shifts.push(shiftToDto(shift));
+        }
+      }
+
+      // Sắp xếp ca theo giờ bắt đầu (sáng → chiều)
+      shifts.sort((a, b) => (a.startTime || '00:00').localeCompare(b.startTime || '00:00'));
+
+      // Lấy records đang dở (checkin chưa checkout)
+      if (shifts.length > 0) {
+        const attResult = await this.recordRepo.findFiltered({ fromDate: today, toDate: today, employeeId: context.activeEmployeeId });
+        const records = attResult.data.map(attendanceRecordToDto);
+        activeRecords = records.filter(r => r.checkinAt && !r.checkoutAt && shifts.some(s => Number(s.id) === Number(r.shiftId)));
+      }
+    }
+
+    // 2. Lịch tháng (calendar)
+    let calendar: any[] = [];
+    if (context.activeEmployeeId) {
+      const employee = await this.employeeRepo.findById(context.activeEmployeeId);
+      if (employee) {
+        const companyShifts = await this.shiftRepo.findByCompanyId(employee.companyId);
+        const shiftDetailMap: Record<number, Shift> = {};
+        for (const s of companyShifts) shiftDetailMap[s.id] = s;
+
+        const records = await this.recordRepo.findByEmployeeAndDateRange(context.activeEmployeeId, firstOfMonth, lastOfMonth);
+
+        const assignments = await this.shiftAssignmentRepo.findEffectiveForRange(context.activeEmployeeId, firstOfMonth, lastOfMonth);
+
+        const dateRecordMap: Record<string, Map<number, AttendanceRecord>> = {};
+        for (const r of records) {
+          if (!dateRecordMap[r.workDate]) dateRecordMap[r.workDate] = new Map();
+          dateRecordMap[r.workDate].set(r.shiftId, r);
+        }
+
+        const WEEKDAY_BITS = [64, 1, 2, 4, 8, 16, 32];
+
+        const current = moment(firstOfMonth + 'T00:00:00+07:00').utcOffset('+07:00');
+        const end = moment(lastOfMonth + 'T00:00:00+07:00').utcOffset('+07:00');
+
+        while (current.isSameOrBefore(end)) {
+          const dateStr = current.format('YYYY-MM-DD');
+          const dayOfWeek = current.day();
+          const weekdayBit = WEEKDAY_BITS[dayOfWeek];
+          const dayRecordMap = dateRecordMap[dateStr] || new Map();
+
+          const assignedShiftIds = new Set<number>();
+          for (const a of assignments) {
+            if (a.startsOn && a.startsOn > dateStr) continue;
+            if (a.endsOn && a.endsOn < dateStr) continue;
+            assignedShiftIds.add(a.shiftId);
+          }
+
+          const shiftsForDay: any[] = [];
+          for (const shiftId of assignedShiftIds) {
+            const shift = shiftDetailMap[shiftId];
+            if (!shift) continue;
+            if ((shift.weekdays & weekdayBit) === 0) continue;
+
+            const record = dayRecordMap.get(shiftId);
+            if (record) {
+              shiftsForDay.push({
+                shiftId: shift.id,
+                shiftName: shift.name,
+                workStatus: record.workStatus,
+                lateMin: record.lateMin,
+                earlyMin: record.earlyMin,
+                checkinAt: record.checkinAt ? moment(record.checkinAt).utcOffset('+07:00').format('HH:mm') : null,
+                checkoutAt: record.checkoutAt ? moment(record.checkoutAt).utcOffset('+07:00').format('HH:mm') : null,
+                attendanceRecordId: record.id,
+                approvalStatus: record.approvalStatus,
+                actualWorkMinutes: record.actualWorkMinutes,
+                workCredit: Number(record.workCredit),
+              });
+            } else {
+              shiftsForDay.push({
+                shiftId: shift.id,
+                shiftName: shift.name,
+                workStatus: 'absent',
+                lateMin: 0,
+                earlyMin: 0,
+                checkinAt: null,
+                checkoutAt: null,
+                attendanceRecordId: null,
+                approvalStatus: null,
+                actualWorkMinutes: 0,
+                workCredit: 0,
+              });
+            }
+          }
+
+          calendar.push({ date: dateStr, dayOfWeek, shifts: shiftsForDay, totalShifts: shiftsForDay.length });
+          current.add(1, 'day');
+        }
+      }
+    }
+
+    return {
+      shifts,
+      activeRecords,
+      calendar,
+    };
   }
 
 }
