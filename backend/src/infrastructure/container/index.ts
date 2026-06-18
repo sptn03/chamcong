@@ -115,6 +115,7 @@ export function buildContainer(): AppContainer {
     membershipRepo,
     locationRepo,
     wifiRepo,
+    companyRepo,
   );
 
   // --- Middleware ---

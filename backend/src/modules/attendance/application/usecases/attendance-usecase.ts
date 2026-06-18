@@ -7,6 +7,7 @@ import {
   IMembershipRepository,
   ILocationRepository,
   IWifiRepository,
+  ICompanyRepository,
 } from '../../domain/repositories';
 import {
   AttendanceRecord,
@@ -15,7 +16,7 @@ import {
   AttendanceSource,
   UpdateAttendanceRecordInput,
 } from '../../domain/entities';
-import { AttendanceRecordDto, attendanceRecordToDto, CheckinDto, CheckoutDto, AttendanceFilterDto, evidenceToDto, shiftToDto, ShiftDto, shiftAssignmentToDto } from '../dto';
+import { AttendanceRecordDto, attendanceRecordToDto, CheckinDto, CheckoutDto, AttendanceFilterDto, evidenceToDto, shiftToDto, ShiftDto, shiftAssignmentToDto, companyToDto, CompanyDto } from '../dto';
 import { ValidationError, NotFoundError } from '../../../../shared/errors';
 import { haversineDistance } from '../../../../shared/utils/geo';
 import { getMomentFromInterval, getShiftDurationMinutes, calculateWorkCredit } from '../../../../shared/utils/shift-time';
@@ -41,6 +42,7 @@ export class AttendanceUsecase {
     private readonly membershipRepo: IMembershipRepository,
     private readonly locationRepo: ILocationRepository,
     private readonly wifiRepo: IWifiRepository,
+    private readonly companyRepo: ICompanyRepository,
   ) {}
 
   async checkin(input: CheckinDto): Promise<AttendanceRecordDto> {
@@ -1025,7 +1027,17 @@ export class AttendanceUsecase {
       }
     }
 
+    // 3. Lấy thông tin công ty hiện tại
+    let company: CompanyDto | null = null;
+    if (context.activeCompanyId) {
+      const companyEntity = await this.companyRepo.findById(context.activeCompanyId);
+      if (companyEntity) {
+        company = companyToDto(companyEntity);
+      }
+    }
+
     return {
+      company,
       shifts,
       activeRecords,
       calendar,
