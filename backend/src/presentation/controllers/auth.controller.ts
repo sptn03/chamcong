@@ -43,7 +43,7 @@ export class AuthController {
   switchCompany = asyncHandler(async (req: Request, res: Response) => {
     const tokenId = req.tokenId;
     const userId = req.userId;
-    const companyId = req.body?.companyId;
+    const companyId = Number(req.body?.companyId);
 
     if (!tokenId || !userId) {
       res.status(401).json({ success: false, message: 'Chưa xác thực hoặc token không hợp lệ' });
