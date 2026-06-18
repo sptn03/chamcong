@@ -270,14 +270,14 @@ export class AuthUsecase {
 
     const existing = await this.tokenRepo.findByToken(token, true);
 
-    // Tự động gán công ty nếu người dùng chỉ thuộc về duy nhất 1 công ty hoạt động
+    // Tự động gán công ty đầu tiên còn hoạt động
     const employees = await this.employeeRepo.findByUserId(userId);
     const activeEmployees = employees.filter(e => e.status === 'active');
 
     let activeCompanyId: number | null = null;
     let activeEmployeeId: number | null = null;
 
-    if (activeEmployees.length === 1) {
+    if (activeEmployees.length >= 1) {
       activeCompanyId = activeEmployees[0].companyId;
       activeEmployeeId = activeEmployees[0].id;
     }
@@ -316,14 +316,14 @@ export class AuthUsecase {
       await this.tokenRepo.deactivateAllForUser(userId);
     }
 
-    // Tự động gán công ty nếu người dùng chỉ thuộc về duy nhất 1 công ty hoạt động
+    // Tự động gán công ty đầu tiên còn hoạt động
     const employees = await this.employeeRepo.findByUserId(userId);
     const activeEmployees = employees.filter(e => e.status === 'active');
 
     let activeCompanyId: number | undefined = undefined;
     let activeEmployeeId: number | undefined = undefined;
 
-    if (activeEmployees.length === 1) {
+    if (activeEmployees.length >= 1) {
       activeCompanyId = activeEmployees[0].companyId;
       activeEmployeeId = activeEmployees[0].id;
     }
