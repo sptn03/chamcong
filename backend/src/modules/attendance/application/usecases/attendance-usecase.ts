@@ -55,6 +55,9 @@ export class AttendanceUsecase {
     if (!shift) throw new NotFoundError('Không tìm thấy ca làm');
 
     // 3. Kiểm tra ngày trong tuần của ca làm
+    if (!input.workDate) {
+      input.workDate = moment().format('YYYY-MM-DD');
+    }
     const dayOfWeek = moment(input.workDate, 'YYYY-MM-DD').day();
     const weekdayBit = WEEKDAY_BITS[dayOfWeek];
     if ((shift.weekdays & weekdayBit) === 0) {
