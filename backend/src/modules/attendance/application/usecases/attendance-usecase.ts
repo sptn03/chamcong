@@ -456,10 +456,12 @@ export class AttendanceUsecase {
         nameMap[emp.id] = { name: emp.fullName || '', code: emp.employeeCode };
       }
 
-      // Lấy evidence cho từng record để đính kèm chi tiết vào ca/ra ca
+      // Lấy evidence cho từng record 
       const recordIds = records.map(r => r.id);
-      const evidences = await this.evidenceRepo.findByRecordIds(recordIds);
-      const editLogs = await this.recordRepo.findLatestEditLogs(recordIds);
+      const [evidences, editLogs] = await Promise.all([
+        this.evidenceRepo.findByRecordIds(recordIds),
+        this.recordRepo.findLatestEditLogs(recordIds),
+      ]);
       
       interface RecordEvidenceData {
         checkinPhotoPath: string | null;
@@ -822,12 +824,10 @@ export class AttendanceUsecase {
       // Sắp xếp ca theo giờ bắt đầu (sáng → chiều)
       shifts.sort((a, b) => (a.startTime || '00:00').localeCompare(b.startTime || '00:00'));
 
-      // Lấy records đang dở (checkin chưa checkout)
-      if (shifts.length > 0) {
-        const attResult = await this.recordRepo.findFiltered({ fromDate: today, toDate: today, employeeId: context.activeEmployeeId });
-        const records = attResult.data.map(attendanceRecordToDto);
-        activeRecords = records.filter(r => r.checkinAt && !r.checkoutAt && shifts.some(s => Number(s.id) === Number(r.shiftId)));
-      }
+      // Lọc records đang dở từ activeRecs đã fetch ở trên
+      activeRecords = activeRecs
+        .filter(r => r.checkinAt && !r.checkoutAt && shifts.some(s => Number(s.id) === Number(r.shiftId)))
+        .map(attendanceRecordToDto);
     }
 
     // 2. Lịch tháng (calendar)

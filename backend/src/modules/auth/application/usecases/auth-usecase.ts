@@ -184,14 +184,12 @@ export class AuthUsecase {
       throw new ValidationError('companyId là bắt buộc');
     }
 
-    const employees = await this.employeeRepo.findByUserId(userId);
-    const activeEmployee = employees.find(e => e.companyId === companyId && e.status === 'active');
-
-    if (!activeEmployee) {
+    const membership = await this.membershipRepo.findActive(userId, companyId);
+    if (!membership || !membership.employeeId) {
       throw new ValidationError('Người dùng không có hồ sơ nhân viên hoạt động trong công ty này');
     }
 
-    const employeeId = activeEmployee.id;
+    const employeeId = membership.employeeId;
     await this.tokenRepo.updateActiveContext(tokenId, companyId, employeeId);
 
     return {

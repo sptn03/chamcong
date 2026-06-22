@@ -92,9 +92,8 @@ export class EmployeeUsecase {
       });
     }
 
-    // Lấy thông tin nhân viên đầy đủ
-    const fullEmployee = await this.employeeRepo.findById(entity.id);
-    return employeeToDto(fullEmployee!);
+    // entity từ repo.create() đã là đầy đủ (repo tự gọi findById sau INSERT)
+    return employeeToDto(entity);
   }
 
   async getById(id: number): Promise<EmployeeDto> {
@@ -112,8 +111,8 @@ export class EmployeeUsecase {
     const existing = await this.employeeRepo.findById(id);
     if (!existing) throw new NotFoundError('Không tìm thấy thông tin nhân viên');
 
-    // Cập nhật employees
-    await this.employeeRepo.update(id, {
+    // Cập nhật employees — kết quả trả về đã là entity đầy đủ (repo tự gọi findById sau UPDATE)
+    const entity = await this.employeeRepo.update(id, {
       branchId: input.branchId,
       departmentId: input.departmentId,
       title: input.title,
@@ -163,8 +162,7 @@ export class EmployeeUsecase {
       }
     }
 
-    const entity = await this.employeeRepo.findById(id);
-    return employeeToDto(entity!);
+    return employeeToDto(entity);
   }
 
   async delete(id: number): Promise<void> {
