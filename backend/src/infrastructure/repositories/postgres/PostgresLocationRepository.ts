@@ -102,11 +102,11 @@ export class PostgresLocationRepository implements ILocationRepository {
 
   async findActiveLocationsForEmployee(companyId: number, employeeId: number, branchId: number): Promise<Location[]> {
     const result: QueryResult<LocationRow> = await this.pool.query(
-      `SELECT *
-       FROM locations
-       WHERE deleted_at IS NULL
-         AND company_id = $1
-         AND (employee_id = $2 OR (employee_id IS NULL AND branch_id = $3))`,
+      `SELECT * FROM locations
+       WHERE deleted_at IS NULL AND company_id = $1 AND employee_id = $2
+       UNION ALL
+       SELECT * FROM locations
+       WHERE deleted_at IS NULL AND company_id = $1 AND employee_id IS NULL AND branch_id = $3`,
       [companyId, employeeId, branchId]
     );
     return result.rows.map(rowToEntity);

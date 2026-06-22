@@ -71,26 +71,32 @@ export class AttendanceUsecase {
     if (!isOffline) {
       const method = shift.attendanceMethod as string;
 
+      const needsGps = method === 'gps' || method === 'gps_wifi' || method === 'gps_or_wifi';
+      const needsWifi = method === 'wifi' || method === 'gps_wifi' || method === 'gps_or_wifi';
+
+      if (needsGps && (input.lat === undefined || input.lng === undefined)) {
+        throw new ValidationError('Thiếu tọa độ GPS để xác thực vị trí');
+      }
+      if (needsWifi && !input.wifiSsid) {
+        throw new ValidationError('Thiếu thông tin Wifi SSID để xác thực mạng');
+      }
+
+      // Fetch locations và wifis song song
+      const [locations, wifis] = await Promise.all([
+        needsGps ? this.locationRepo.findActiveLocationsForEmployee(employee.companyId, employee.id, employee.branchId) : [],
+        needsWifi ? this.wifiRepo.findByBranchId(employee.branchId) : [],
+      ]);
+
       let minDistance: number | null = null;
       let closestLocationName: string = '';
       let closestLocationRadius: number = 0;
 
       // Xác thực GPS
-      if (method === 'gps' || method === 'gps_wifi' || method === 'gps_or_wifi') {
-        if (input.lat === undefined || input.lng === undefined) {
-          throw new ValidationError('Thiếu tọa độ GPS để xác thực vị trí');
-        }
-
-        const locations = await this.locationRepo.findActiveLocationsForEmployee(
-          employee.companyId,
-          employee.id,
-          employee.branchId
-        );
-
+      if (needsGps) {
         allowedLocations = locations.map(l => ({ name: l.name, radius_m: l.radiusM }));
 
         for (const loc of locations) {
-          const dist = haversineDistance(input.lat, input.lng, parseFloat(loc.lat as any), parseFloat(loc.lng as any));
+          const dist = haversineDistance(input.lat!, input.lng!, parseFloat(loc.lat as any), parseFloat(loc.lng as any));
           if (minDistance === null || dist < minDistance) {
             minDistance = dist;
             closestLocationName = loc.name;
@@ -106,12 +112,7 @@ export class AttendanceUsecase {
       }
 
       // Xác thực Wifi
-      if (method === 'wifi' || method === 'gps_wifi' || method === 'gps_or_wifi') {
-        if (!input.wifiSsid) {
-          throw new ValidationError('Thiếu thông tin Wifi SSID để xác thực mạng');
-        }
-
-        const wifis = await this.wifiRepo.findByBranchId(employee.branchId);
+      if (needsWifi) {
 
         allowedWifis = wifis.map(w => ({
           ssid: w.ssid,
@@ -195,18 +196,21 @@ export class AttendanceUsecase {
   }
 
   async checkin(input: CheckinDto): Promise<AttendanceRecordDto> {
-    // 1. Kiểm tra nhân viên tồn tại
-    const employee = await this.employeeRepo.findById(input.employeeId);
-    if (!employee) throw new NotFoundError('Không tìm thấy nhân viên');
-
-    // 2. Kiểm tra ca làm tồn tại
-    const shift = await this.shiftRepo.findById(input.shiftId);
-    if (!shift) throw new NotFoundError('Không tìm thấy ca làm');
-
-    // 3. Kiểm tra ngày trong tuần của ca làm
     if (!input.workDate) {
       input.workDate = moment().format('YYYY-MM-DD');
     }
+
+    const [employee, shift, effectiveAssignments, existingRecords] = await Promise.all([
+      this.employeeRepo.findById(input.employeeId),
+      this.shiftRepo.findById(input.shiftId),
+      this.shiftAssignmentRepo.findEffective(input.employeeId, input.workDate),
+      this.recordRepo.findByEmployeeAndDate(input.employeeId, input.workDate),
+    ]);
+
+    if (!employee) throw new NotFoundError('Không tìm thấy nhân viên');
+    if (!shift) throw new NotFoundError('Không tìm thấy ca làm');
+
+    // 3. Kiểm tra ngày trong tuần của ca làm
     const dayOfWeek = moment(input.workDate, 'YYYY-MM-DD').day();
     const weekdayBit = WEEKDAY_BITS[dayOfWeek];
     if ((shift.weekdays & weekdayBit) === 0) {
@@ -214,7 +218,6 @@ export class AttendanceUsecase {
     }
 
     // 4. Kiểm tra gán ca
-    const effectiveAssignments = await this.shiftAssignmentRepo.findEffective(input.employeeId, input.workDate);
     const isAssigned = effectiveAssignments.some(sa => Number(sa.shiftId) === Number(input.shiftId));
     if (!isAssigned) {
       throw new ValidationError('Nhân viên không được gán ca làm việc này trong ngày hôm nay');
@@ -235,11 +238,7 @@ export class AttendanceUsecase {
       isCheckinOutside = true;
     }
 
-    // 6. Kiểm tra đã check-in ca này chưa
-    const existingRecords = await this.recordRepo.findByEmployeeAndDate(
-      input.employeeId,
-      input.workDate,
-    );
+    // 6. Kiểm tra đã check-in ca này chưa (dữ liệu đã lấy ở parallel batch)
     if (existingRecords.some(r => Number(r.shiftId) === Number(input.shiftId) && r.checkinAt)) {
       throw new ValidationError('Đã check-in ca này rồi');
     }
@@ -314,11 +313,12 @@ export class AttendanceUsecase {
     if (!record) throw new NotFoundError('Không tìm thấy bản ghi công');
     if (record.checkoutAt) throw new ValidationError('Đã check-out rồi');
 
-    // 2. Lấy thông tin ca làm và nhân viên
-    const shift = await this.shiftRepo.findById(record.shiftId);
+    // 2. Lấy thông tin ca làm và nhân viên (song song)
+    const [shift, employee] = await Promise.all([
+      this.shiftRepo.findById(record.shiftId),
+      this.employeeRepo.findById(record.employeeId),
+    ]);
     if (!shift) throw new NotFoundError('Không tìm thấy ca làm của bản ghi công');
-
-    const employee = await this.employeeRepo.findById(record.employeeId);
     if (!employee) throw new NotFoundError('Không tìm thấy nhân viên');
 
     const checkoutTime = input.clientTime ? new Date(input.clientTime) : new Date();
