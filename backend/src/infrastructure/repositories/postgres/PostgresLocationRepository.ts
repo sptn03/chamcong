@@ -1,6 +1,6 @@
 import { Pool, QueryResult } from 'pg';
-import { ILocationRepository } from '../../../modules/attendance/domain/repositories';
-import { Location, CreateLocationInput } from '../../../modules/attendance/domain/entities';
+import { ILocationRepository } from '../../../modules/location/domain/repositories';
+import { Location, CreateLocationInput } from '../../../modules/location/domain/entities';
 import { buildUpdateSet } from '../../../shared/utils/db';
 
 interface LocationRow {

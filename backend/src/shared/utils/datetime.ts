@@ -1,13 +1,6 @@
 import moment from 'moment';
 
 /**
- * Format thời gian về GMT+7 và trả về chuỗi định dạng 'YYYY-MM-DD HH:mm:ss'
- */
-export function formatToGMT7(date: Date | string | number): string {
-  return moment(date).utcOffset('+07:00').format('YYYY-MM-DD HH:mm:ss');
-}
-
-/**
  * Format chuỗi thời gian thành chuỗi SQL compatible (YYYY-MM-DD HH:mm:ss)
  */
 export function formatDateTimeSql(date: Date = new Date()): string {

@@ -1,29 +1,9 @@
-import { IShiftAssignmentRepository, IShiftRepository, IAttendanceRecordRepository } from '../../domain/repositories';
+import { IShiftAssignmentRepository, IShiftRepository } from '../../domain/repositories';
+import { IAttendanceRecordRepository } from '../../../attendance/domain/repositories';
 import { ShiftAssignmentDto, shiftAssignmentToDto, CreateShiftAssignmentDto } from '../dto';
 import { ValidationError, NotFoundError } from '../../../../shared/errors';
+import { getMomentFromInterval } from '../../../../shared/utils/shift-time';
 import moment from 'moment';
-
-function getMomentFromInterval(workDate: string, intervalValue: string | Record<string, number>): moment.Moment {
-  let hours = 0, minutes = 0, seconds = 0;
-
-  if (typeof intervalValue === 'string') {
-    const parts = intervalValue.split(':');
-    hours = parseInt(parts[0] || '0', 10);
-    minutes = parseInt(parts[1] || '0', 10);
-    seconds = parseInt(parts[2] || '0', 10);
-  } else if (intervalValue && typeof intervalValue === 'object') {
-    hours = (intervalValue as any).hours || 0;
-    minutes = (intervalValue as any).minutes || 0;
-    seconds = (intervalValue as any).seconds || 0;
-  }
-
-  return moment(workDate, 'YYYY-MM-DD')
-    .utcOffset('+07:00')
-    .startOf('day')
-    .add(hours, 'hours')
-    .add(minutes, 'minutes')
-    .add(seconds, 'seconds');
-}
 
 export class ShiftAssignmentUsecase {
   constructor(

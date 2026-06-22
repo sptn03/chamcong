@@ -1,6 +1,6 @@
 import { Pool, QueryResult } from 'pg';
-import { IBranchRepository } from '../../../modules/attendance/domain/repositories';
-import { Branch, CreateBranchInput, UpdateBranchInput } from '../../../modules/attendance/domain/entities';
+import { IBranchRepository } from '../../../modules/company/domain/repositories';
+import { Branch, CreateBranchInput, UpdateBranchInput } from '../../../modules/company/domain/entities';
 import { buildUpdateSet } from '../../../shared/utils/db';
 
 interface BranchRow {

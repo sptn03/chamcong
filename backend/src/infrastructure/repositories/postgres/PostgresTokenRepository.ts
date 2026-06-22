@@ -1,6 +1,6 @@
 import { Pool, QueryResult } from 'pg';
-import { ITokenRepository } from '../../../modules/attendance/domain/repositories';
-import { Token, CreateTokenInput } from '../../../modules/attendance/domain/entities';
+import { ITokenRepository } from '../../../modules/auth/domain/repositories';
+import { Token, CreateTokenInput } from '../../../modules/auth/domain/entities';
 
 interface TokenRow {
   id: number;

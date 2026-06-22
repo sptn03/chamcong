@@ -1,6 +1,6 @@
 import { Pool, QueryResult } from 'pg';
-import { IDeviceRepository } from '../../../modules/attendance/domain/repositories';
-import { Device, RegisterDeviceInput } from '../../../modules/attendance/domain/entities';
+import { IDeviceRepository } from '../../../modules/location/domain/repositories';
+import { Device, RegisterDeviceInput } from '../../../modules/location/domain/entities';
 import {
   DEVICE_STATUS_APPROVED,
   DEVICE_STATUS_REVOKED,

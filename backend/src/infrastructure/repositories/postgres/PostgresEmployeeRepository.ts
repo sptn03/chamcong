@@ -1,6 +1,6 @@
 import { Pool, QueryResult } from 'pg';
-import { IEmployeeRepository } from '../../../modules/attendance/domain/repositories';
-import { Employee, CreateEmployeeInput, UpdateEmployeeInput } from '../../../modules/attendance/domain/entities';
+import { IEmployeeRepository } from '../../../modules/employee/domain/repositories';
+import { Employee, CreateEmployeeInput, UpdateEmployeeInput } from '../../../modules/employee/domain/entities';
 import { EMPLOYEE_STATUS_ACTIVE } from '../../../shared/constants';
 import { buildUpdateSet } from '../../../shared/utils/db';
 

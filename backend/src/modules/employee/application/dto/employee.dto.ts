@@ -68,4 +68,3 @@ export interface UpdateEmployeeDto {
   role?: number;
   isHunonic?: boolean;
 }
-

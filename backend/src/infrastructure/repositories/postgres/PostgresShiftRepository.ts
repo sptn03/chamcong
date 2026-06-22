@@ -1,6 +1,6 @@
 import { Pool, QueryResult } from 'pg';
-import { IShiftRepository } from '../../../modules/attendance/domain/repositories';
-import { Shift, CreateShiftInput } from '../../../modules/attendance/domain/entities';
+import { IShiftRepository } from '../../../modules/shift/domain/repositories';
+import { Shift, CreateShiftInput } from '../../../modules/shift/domain/entities';
 import { buildUpdateSet } from '../../../shared/utils/db';
 
 interface ShiftRow {

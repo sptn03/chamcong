@@ -1,4 +1,5 @@
-import { IEmployeeRepository, IUserRepository, IMembershipRepository } from '../../domain/repositories';
+import { IEmployeeRepository, IMembershipRepository } from '../../domain/repositories';
+import { IUserRepository } from '../../../auth/domain/repositories';
 import { CreateEmployeeInput, UpdateEmployeeInput } from '../../domain/entities';
 import { EmployeeDto, employeeToDto, CreateEmployeeDto, UpdateEmployeeDto } from '../dto';
 import { ValidationError, NotFoundError } from '../../../../shared/errors';

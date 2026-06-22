@@ -1,6 +1,6 @@
 import { Pool, QueryResult } from 'pg';
-import { IWifiRepository } from '../../../modules/attendance/domain/repositories';
-import { Wifi, CreateWifiInput } from '../../../modules/attendance/domain/entities';
+import { IWifiRepository } from '../../../modules/location/domain/repositories';
+import { Wifi, CreateWifiInput } from '../../../modules/location/domain/entities';
 import { WIFI_MATCH_MODE_SSID, WIFI_MATCH_MODE_SSID_BSSID } from '../../../shared/constants';
 import { buildUpdateSet } from '../../../shared/utils/db';
 

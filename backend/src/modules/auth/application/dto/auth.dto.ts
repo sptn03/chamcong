@@ -9,9 +9,7 @@ export interface LoginDto {
 }
 
 export interface HunonicLoginDto {
-  /** Token từ Hunonic sau khi xác thực bên Hunonic */
   hunonicToken: string;
-  /** Email hoặc phone để map user (nếu cần) */
   phone?: string;
   deviceUid?: string;
   deviceName?: string;

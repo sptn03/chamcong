@@ -1,4 +1,6 @@
-import { ITokenRepository, IUserRepository, IDeviceRepository, IMembershipRepository, IEmployeeRepository } from '../../domain/repositories';
+import { ITokenRepository, IUserRepository } from '../../domain/repositories';
+import { IDeviceRepository } from '../../../location/domain/repositories';
+import { IMembershipRepository, IEmployeeRepository } from '../../../employee/domain/repositories';
 import { LoginDto, HunonicLoginDto, HunonicPasswordLoginDto, TokenDto, LogoutDto } from '../dto';
 import { ValidationError, UnauthorizedError } from '../../../../shared/errors';
 import { HunonicService } from '../../../../infrastructure/services/HunonicService';

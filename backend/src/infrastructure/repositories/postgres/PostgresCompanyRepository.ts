@@ -1,6 +1,6 @@
 import { Pool, QueryResult } from 'pg';
-import { ICompanyRepository } from '../../../modules/attendance/domain/repositories';
-import { Company, CreateCompanyInput, UpdateCompanyInput } from '../../../modules/attendance/domain/entities';
+import { ICompanyRepository } from '../../../modules/company/domain/repositories';
+import { Company, CreateCompanyInput, UpdateCompanyInput } from '../../../modules/company/domain/entities';
 import { buildUpdateSet } from '../../../shared/utils/db';
 
 interface CompanyRow {

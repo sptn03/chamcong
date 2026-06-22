@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { ShiftUsecase } from '../../modules/attendance/application/usecases';
+import { ShiftUsecase } from '../../modules/shift/application/usecases';
 import { asyncHandler } from '../helpers/async-handler';
 import { ok, created } from '../helpers/response';
 

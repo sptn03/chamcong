@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { MembershipUsecase } from '../../modules/attendance/application/usecases';
+import { MembershipUsecase } from '../../modules/employee/application/usecases';
 import { asyncHandler } from '../helpers/async-handler';
 import { ok, created } from '../helpers/response';
 

@@ -1,6 +1,6 @@
 import { Pool, QueryResult } from 'pg';
-import { IMembershipRepository } from '../../../modules/attendance/domain/repositories';
-import { CompanyMembership, CreateMembershipInput } from '../../../modules/attendance/domain/entities';
+import { IMembershipRepository } from '../../../modules/employee/domain/repositories';
+import { CompanyMembership, CreateMembershipInput } from '../../../modules/employee/domain/entities';
 import { buildUpdateSet } from '../../../shared/utils/db';
 
 interface MembershipRow {

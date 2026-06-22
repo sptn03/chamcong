@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { DeviceUsecase } from '../../modules/attendance/application/usecases';
+import { DeviceUsecase } from '../../modules/location/application/usecases';
 import { asyncHandler } from '../helpers/async-handler';
 import { ok, created } from '../helpers/response';
 

@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { ITokenRepository } from '../../modules/attendance/domain/repositories';
+import { ITokenRepository } from '../../modules/auth/domain/repositories';
 import { error as errorResponse } from '../helpers/response';
 
 // Mở rộng Request để gắn userId và context sau khi auth thành công

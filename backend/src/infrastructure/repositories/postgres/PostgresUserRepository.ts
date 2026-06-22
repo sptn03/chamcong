@@ -1,6 +1,6 @@
 import { Pool, QueryResult } from 'pg';
-import { IUserRepository } from '../../../modules/attendance/domain/repositories';
-import { User } from '../../../modules/attendance/domain/entities';
+import { IUserRepository } from '../../../modules/auth/domain/repositories';
+import { User } from '../../../modules/auth/domain/entities';
 import { buildUpdateSet } from '../../../shared/utils/db';
 
 interface UserRow {

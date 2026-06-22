@@ -1,6 +1,6 @@
 import { Pool, QueryResult } from 'pg';
-import { IDepartmentRepository } from '../../../modules/attendance/domain/repositories';
-import { Department, CreateDepartmentInput, UpdateDepartmentInput } from '../../../modules/attendance/domain/entities';
+import { IDepartmentRepository } from '../../../modules/company/domain/repositories';
+import { Department, CreateDepartmentInput, UpdateDepartmentInput } from '../../../modules/company/domain/entities';
 import { buildUpdateSet } from '../../../shared/utils/db';
 
 interface DepartmentRow {

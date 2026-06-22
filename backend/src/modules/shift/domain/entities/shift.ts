@@ -4,8 +4,8 @@ export interface Shift {
   id: number;
   companyId: number;
   name: string;
-  startTime: string; // ISO interval string, e.g. '08:00:00'
-  endTime: string;   // ISO interval string, e.g. '17:00:00'
+  startTime: string;
+  endTime: string;
   checkinFrom: string;
   checkinTo: string;
   checkoutFrom: string;

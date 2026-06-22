@@ -23,4 +23,3 @@ export interface CreateLocationInput {
   lng: number;
   radiusM?: number;
 }
-

@@ -1,6 +1,6 @@
 import { Pool, QueryResult } from 'pg';
-import { IShiftAssignmentRepository } from '../../../modules/attendance/domain/repositories';
-import { ShiftAssignment, CreateShiftAssignmentInput } from '../../../modules/attendance/domain/entities';
+import { IShiftAssignmentRepository } from '../../../modules/shift/domain/repositories';
+import { ShiftAssignment, CreateShiftAssignmentInput } from '../../../modules/shift/domain/entities';
 import {
   SHIFT_ASSIGNMENT_SCOPE_COMPANY,
   SHIFT_ASSIGNMENT_SCOPE_BRANCH,

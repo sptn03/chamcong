@@ -22,20 +22,12 @@ import {
 } from '../repositories/postgres';
 
 // Usecases
-import {
-  CompanyUsecase,
-  EmployeeUsecase,
-  AttendanceUsecase,
-  AuthUsecase,
-  BranchUsecase,
-  DepartmentUsecase,
-  MembershipUsecase,
-  DeviceUsecase,
-  LocationUsecase,
-  WifiUsecase,
-  ShiftUsecase,
-  ShiftAssignmentUsecase,
-} from '../../modules/attendance/application/usecases';
+import { AttendanceUsecase } from '../../modules/attendance/application/usecases';
+import { CompanyUsecase, BranchUsecase, DepartmentUsecase } from '../../modules/company/application/usecases';
+import { EmployeeUsecase, MembershipUsecase } from '../../modules/employee/application/usecases';
+import { AuthUsecase } from '../../modules/auth/application/usecases';
+import { LocationUsecase, WifiUsecase, DeviceUsecase } from '../../modules/location/application/usecases';
+import { ShiftUsecase, ShiftAssignmentUsecase } from '../../modules/shift/application/usecases';
 
 // Controllers
 import {
@@ -54,7 +46,6 @@ import {
 } from '../../presentation/controllers';
 
 export interface AppContainer {
-  pool: Pool;
   authMiddleware: ReturnType<typeof createAuthMiddleware>;
   controllers: {
     auth: AuthController;
@@ -136,7 +127,6 @@ export function buildContainer(): AppContainer {
   const attendanceController = new AttendanceController(attendanceUsecase);
 
   return {
-    pool,
     authMiddleware,
     controllers: {
       auth: authController,
