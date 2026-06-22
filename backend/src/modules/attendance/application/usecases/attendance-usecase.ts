@@ -210,6 +210,9 @@ export class AttendanceUsecase {
     if (!employee) throw new NotFoundError('Không tìm thấy nhân viên');
     if (!shift) throw new NotFoundError('Không tìm thấy ca làm');
 
+    // Xác định chấm công offline ngay từ đầu (dùng cho bước kiểm tra trùng)
+    const isOffline = input.photoPath !== undefined || (input as any).source === 'offline';
+
     // 3. Kiểm tra ngày trong tuần của ca làm
     const dayOfWeek = moment(input.workDate, 'YYYY-MM-DD').day();
     const weekdayBit = WEEKDAY_BITS[dayOfWeek];
@@ -239,12 +242,16 @@ export class AttendanceUsecase {
     }
 
     // 6. Kiểm tra đã check-in ca này chưa (dữ liệu đã lấy ở parallel batch)
-    if (existingRecords.some(r => Number(r.shiftId) === Number(input.shiftId) && r.checkinAt)) {
+    const existingRecord = existingRecords.find(r => Number(r.shiftId) === Number(input.shiftId) && r.checkinAt);
+    if (existingRecord) {
+      if (isOffline) {
+        return attendanceRecordToDto(existingRecord);
+      }
       throw new ValidationError('Đã check-in ca này rồi');
     }
 
     // 7. Xác thực vị trí (GPS) và/hoặc mạng (Wifi)
-    const { gpsValid, wifiValid, matchedLocationId, matchedWifiId, distanceM, validationError, isOffline } =
+    const { gpsValid, wifiValid, matchedLocationId, matchedWifiId, distanceM, validationError } =
       await this.validateAttendanceLocation(input, employee, shift);
 
     // 8. Tính toán đi muộn
