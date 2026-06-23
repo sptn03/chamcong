@@ -197,7 +197,7 @@ export class AttendanceUsecase {
 
   async checkin(input: CheckinDto): Promise<AttendanceRecordDto> {
     if (!input.workDate) {
-      input.workDate = moment().format('YYYY-MM-DD');
+      input.workDate = moment().utcOffset('+07:00').format('YYYY-MM-DD');
     }
 
     const [employee, shift, effectiveAssignments, existingRecords] = await Promise.all([
