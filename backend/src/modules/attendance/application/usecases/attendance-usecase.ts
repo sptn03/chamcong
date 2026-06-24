@@ -13,6 +13,7 @@ import { companyToDto, CompanyDto } from '../../../company/application/dto';
 import { ValidationError, NotFoundError } from '../../../../shared/errors';
 import { haversineDistance } from '../../../../shared/utils/geo';
 import { getMomentFromInterval, getShiftDurationMinutes, calculateWorkCredit } from '../../../../shared/utils/shift-time';
+import { WIFI_MATCH_MODE_SSID, WIFI_MATCH_MODE_SSID_BSSID } from '../../../../shared/constants';
 import moment from 'moment';
 
 // BSSID cấu trúc lại thành dạng uppercase và có 2 chữ số mỗi octet
@@ -117,7 +118,7 @@ export class AttendanceUsecase {
         allowedWifis = wifis.map(w => ({
           ssid: w.ssid,
           bssid: w.bssid,
-          match_mode: w.matchMode === 'ssid' ? 1 : 2,
+          match_mode: w.matchMode === 'ssid' ? WIFI_MATCH_MODE_SSID : WIFI_MATCH_MODE_SSID_BSSID,
         }));
 
         for (const wifi of wifis) {
@@ -260,7 +261,7 @@ export class AttendanceUsecase {
     let workStatus = 'normal';
 
     if (isCheckinOutside) {
-      workStatus = 'forgot';
+      workStatus = 'forgot_in';
     } else if (clientTimeMoment.isAfter(startTimeMoment)) {
       const diff = clientTimeMoment.diff(startTimeMoment, 'minutes');
       if (diff > shift.lateThresholdMin) {
@@ -358,9 +359,13 @@ export class AttendanceUsecase {
     }
 
     // 6. Tính toán lại workStatus
-    let finalWorkStatus = record.workStatus; // 'normal' hoặc 'late' hoặc 'leave' ...
-    if (finalWorkStatus === 'forgot' || isCheckoutOutside) {
-      finalWorkStatus = 'forgot';
+    let finalWorkStatus = record.workStatus; // 'normal' | 'late' | 'forgot_in' | ...
+    if (finalWorkStatus === 'forgot_in' && isCheckoutOutside) {
+      // Cả check-in và check-out đều ngoài khung → absent
+      finalWorkStatus = 'absent';
+    } else if (isCheckoutOutside) {
+      // Chỉ quên check-out
+      finalWorkStatus = 'forgot_out';
     } else if (earlyMin > 0) {
       if (finalWorkStatus === 'late') {
         finalWorkStatus = 'late_early';

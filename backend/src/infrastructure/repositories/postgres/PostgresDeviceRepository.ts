@@ -2,7 +2,11 @@ import { Pool, QueryResult } from 'pg';
 import { IDeviceRepository } from '../../../modules/location/domain/repositories';
 import { Device, RegisterDeviceInput } from '../../../modules/location/domain/entities';
 import {
+  DEVICE_PLATFORM_IOS,
+  DEVICE_PLATFORM_ANDROID,
+  DEVICE_STATUS_PENDING,
   DEVICE_STATUS_APPROVED,
+  DEVICE_STATUS_REJECTED,
   DEVICE_STATUS_REVOKED,
 } from '../../../shared/constants';
 
@@ -26,8 +30,8 @@ interface DeviceRow {
   updated_at: Date;
 }
 
-const DEVICE_PLATFORM_MAP: Record<number, string> = { 1: 'ios', 2: 'android' };
-const DEVICE_STATUS_MAP: Record<number, string> = { 1: 'pending', 2: 'approved', 3: 'rejected', 4: 'revoked' };
+const DEVICE_PLATFORM_MAP: Record<number, string> = { [DEVICE_PLATFORM_IOS]: 'ios', [DEVICE_PLATFORM_ANDROID]: 'android' };
+const DEVICE_STATUS_MAP: Record<number, string> = { [DEVICE_STATUS_PENDING]: 'pending', [DEVICE_STATUS_APPROVED]: 'approved', [DEVICE_STATUS_REJECTED]: 'rejected', [DEVICE_STATUS_REVOKED]: 'revoked' };
 
 function rowToEntity(row: DeviceRow): Device {
   return {
@@ -51,7 +55,7 @@ function rowToEntity(row: DeviceRow): Device {
   };
 }
 
-const PLATFORM_DB: Record<string, number> = { ios: 1, android: 2 };
+const PLATFORM_DB: Record<string, number> = { ios: DEVICE_PLATFORM_IOS, android: DEVICE_PLATFORM_ANDROID };
 
 export class PostgresDeviceRepository implements IDeviceRepository {
   constructor(private readonly pool: Pool) {}
@@ -121,7 +125,7 @@ export class PostgresDeviceRepository implements IDeviceRepository {
          user_agent = EXCLUDED.user_agent,
          updated_at = NOW()
        RETURNING *`,
-      [input.userId, input.deviceUid, input.deviceName ?? null, PLATFORM_DB[input.platform] ?? 1,
+      [input.userId, input.deviceUid, input.deviceName ?? null, PLATFORM_DB[input.platform] ?? DEVICE_PLATFORM_IOS,
        input.osVersion ?? null, input.appVersion ?? null, input.pushToken ?? null,
        input.ipAddress ?? null, input.userAgent ?? null],
     );
@@ -150,9 +154,9 @@ export class PostgresDeviceRepository implements IDeviceRepository {
     }
 
     const statusDb = status === 'pending' ? 1
-      : status === 'approved' ? 2
-      : status === 'rejected' ? 3
-      : 4;
+      : status === 'approved' ? DEVICE_STATUS_APPROVED
+      : status === 'rejected' ? DEVICE_STATUS_REJECTED
+      : DEVICE_STATUS_REVOKED;
 
     await this.pool.query(
       `UPDATE devices 
@@ -175,10 +179,10 @@ export class PostgresDeviceRepository implements IDeviceRepository {
     const values: unknown[] = [];
 
     if (details.status !== undefined) {
-      const statusDb = details.status === 'pending' ? 1
-        : details.status === 'approved' ? 2
-        : details.status === 'rejected' ? 3
-        : 4;
+      const statusDb = details.status === 'pending' ? DEVICE_STATUS_PENDING
+        : details.status === 'approved' ? DEVICE_STATUS_APPROVED
+        : details.status === 'rejected' ? DEVICE_STATUS_REJECTED
+        : DEVICE_STATUS_REVOKED;
       setClauses.push(`status = $${values.length + 1}`);
       values.push(statusDb);
     }
@@ -203,8 +207,8 @@ export class PostgresDeviceRepository implements IDeviceRepository {
 
   async countApprovedDevices(userId: number): Promise<number> {
     const result = await this.pool.query(
-      'SELECT COUNT(*) AS cnt FROM devices WHERE user_id = $1 AND status = 2',
-      [userId]
+      'SELECT COUNT(*) AS cnt FROM devices WHERE user_id = $1 AND status = $2',
+      [userId, DEVICE_STATUS_APPROVED]
     );
     return Number(result.rows[0].cnt);
   }

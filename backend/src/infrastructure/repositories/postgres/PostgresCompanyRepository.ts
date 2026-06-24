@@ -2,7 +2,7 @@ import { Pool, QueryResult } from 'pg';
 import { ICompanyRepository } from '../../../modules/company/domain/repositories';
 import { Company, CreateCompanyInput, UpdateCompanyInput } from '../../../modules/company/domain/entities';
 import { buildUpdateSet } from '../../../shared/utils/db';
-
+import { EMPLOYEE_STATUS_ACTIVE, MEMBERSHIP_ROLE_ADMIN } from '../../../shared/constants';
 interface CompanyRow {
   id: number;
   name: string;
@@ -129,19 +129,19 @@ export class PostgresCompanyRepository implements ICompanyRepository {
       );
       const deptId = deptRes.rows[0].id;
 
-      // 4. Tạo hồ sơ nhân viên (status = 1 (active))
+      // 4. Tạo hồ sơ nhân viên (active)
       const employeeRes = await client.query(
         `INSERT INTO employees (user_id, company_id, branch_id, department_id, employee_code, title, status)
-         VALUES ($1, $2, $3, $4, $5, $6, 1)
+         VALUES ($1, $2, $3, $4, $5, $6, ${EMPLOYEE_STATUS_ACTIVE})
          RETURNING id`,
         [creatorUserId, companyRow.id, branchId, deptId, 'ADMIN', 'Quản trị viên']
       );
       const employeeId = employeeRes.rows[0].id;
 
-      // 5. Tạo company membership (role = 1 (admin))
+      // 5. Tạo company membership (admin)
       await client.query(
         `INSERT INTO company_memberships (user_id, company_id, employee_id, role, active_department_id)
-         VALUES ($1, $2, $3, 1, $4)`,
+         VALUES ($1, $2, $3, ${MEMBERSHIP_ROLE_ADMIN}, $4)`,
         [creatorUserId, companyRow.id, employeeId, deptId]
       );
 

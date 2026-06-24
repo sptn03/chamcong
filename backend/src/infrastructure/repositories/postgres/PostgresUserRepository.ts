@@ -2,6 +2,13 @@ import { Pool, QueryResult } from 'pg';
 import { IUserRepository } from '../../../modules/auth/domain/repositories';
 import { User } from '../../../modules/auth/domain/entities';
 import { buildUpdateSet } from '../../../shared/utils/db';
+import {
+  USER_STATUS_ACTIVE,
+  USER_STATUS_LOCKED,
+  GENDER_TYPE_MALE,
+  GENDER_TYPE_FEMALE,
+  GENDER_TYPE_OTHER,
+} from '../../../shared/constants';
 
 interface UserRow {
   id: number;
@@ -17,8 +24,8 @@ interface UserRow {
   updated_at: Date;
 }
 
-const USER_STATUS_MAP: Record<number, string> = { 1: 'active', 2: 'locked' };
-const GENDER_TYPE_MAP: Record<number, string> = { 1: 'male', 2: 'female', 3: 'other' };
+const USER_STATUS_MAP: Record<number, string> = { [USER_STATUS_ACTIVE]: 'active', [USER_STATUS_LOCKED]: 'locked' };
+const GENDER_TYPE_MAP: Record<number, string> = { [GENDER_TYPE_MALE]: 'male', [GENDER_TYPE_FEMALE]: 'female', [GENDER_TYPE_OTHER]: 'other' };
 
 function rowToEntity(row: UserRow): User {
   return {
@@ -64,8 +71,8 @@ export class PostgresUserRepository implements IUserRepository {
   }
 
   async create(input: Partial<User> & { password?: string }): Promise<User> {
-    const genderDb = input.gender ? (input.gender === 'male' ? 1 : input.gender === 'female' ? 2 : 3) : 3;
-    const statusDb = input.status === 'locked' ? 2 : 1;
+    const genderDb = input.gender ? (input.gender === 'male' ? GENDER_TYPE_MALE : input.gender === 'female' ? GENDER_TYPE_FEMALE : GENDER_TYPE_OTHER) : GENDER_TYPE_OTHER;
+    const statusDb = input.status === 'locked' ? USER_STATUS_LOCKED : USER_STATUS_ACTIVE;
     const result: QueryResult<UserRow> = await this.pool.query(
       `INSERT INTO users (phone, email, pass, full_name, birthday, gender, status, is_hunonic)
        VALUES ($1, $2, CASE WHEN $3::text IS NOT NULL THEN crypt($3, gen_salt('bf')) ELSE NULL END, $4, $5, $6, $7, $8)
@@ -91,9 +98,9 @@ export class PostgresUserRepository implements IUserRepository {
       ['phone', input.phone],
       ['email', input.email],
       ['birthday', input.birthday],
-      ['gender', input.gender !== undefined ? (input.gender === 'male' ? 1 : input.gender === 'female' ? 2 : 3) : undefined],
+      ['gender', input.gender !== undefined ? (input.gender === 'male' ? GENDER_TYPE_MALE : input.gender === 'female' ? GENDER_TYPE_FEMALE : GENDER_TYPE_OTHER) : undefined],
       ['is_hunonic', input.isHunonic],
-      ['status', input.status !== undefined ? (input.status === 'locked' ? 2 : 1) : undefined],
+      ['status', input.status !== undefined ? (input.status === 'locked' ? USER_STATUS_LOCKED : USER_STATUS_ACTIVE) : undefined],
     ]);
 
     if (input.password !== undefined && input.password !== '') {

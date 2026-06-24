@@ -13,7 +13,8 @@ import {
   WORK_STATUS_LATE,
   WORK_STATUS_EARLY,
   WORK_STATUS_LATE_EARLY,
-  WORK_STATUS_FORGOT,
+  WORK_STATUS_FORGOT_IN,
+  WORK_STATUS_FORGOT_OUT,
   WORK_STATUS_ABSENT,
   WORK_STATUS_LEAVE,
 } from '../../../shared/constants';
@@ -43,11 +44,11 @@ interface AttendanceRecordRow {
   updated_at: Date;
 }
 
-const ATTENDANCE_SOURCE_MAP: Record<number, string> = { 1: 'online', 2: 'offline', 3: 'admin_edit' };
-const APPROVAL_STATUS_MAP: Record<number, string> = { 1: 'pending', 2: 'approved', 3: 'rejected' };
-const WORK_STATUS_MAP: Record<number, string> = { 1: 'normal', 2: 'late', 3: 'early', 4: 'late_early', 5: 'forgot', 6: 'absent', 7: 'leave' };
+const ATTENDANCE_SOURCE_MAP: Record<number, string> = { [ATTENDANCE_SOURCE_ONLINE]: 'online', [ATTENDANCE_SOURCE_OFFLINE]: 'offline', [ATTENDANCE_SOURCE_ADMIN_EDIT]: 'admin_edit' };
+const APPROVAL_STATUS_MAP: Record<number, string> = { [APPROVAL_STATUS_PENDING]: 'pending', [APPROVAL_STATUS_APPROVED]: 'approved', [APPROVAL_STATUS_REJECTED]: 'rejected' };
+const WORK_STATUS_MAP: Record<number, string> = { [WORK_STATUS_NORMAL]: 'normal', [WORK_STATUS_LATE]: 'late', [WORK_STATUS_EARLY]: 'early', [WORK_STATUS_LATE_EARLY]: 'late_early', [WORK_STATUS_ABSENT]: 'absent', [WORK_STATUS_LEAVE]: 'leave', [WORK_STATUS_FORGOT_IN]: 'forgot_in', [WORK_STATUS_FORGOT_OUT]: 'forgot_out' };
 
-const ATTENDANCE_SOURCE_DB: Record<string, number> = { online: 1, offline: 2, admin_edit: 3 };
+const ATTENDANCE_SOURCE_DB: Record<string, number> = { online: ATTENDANCE_SOURCE_ONLINE, offline: ATTENDANCE_SOURCE_OFFLINE, admin_edit: ATTENDANCE_SOURCE_ADMIN_EDIT };
 
 function rowToEntity(row: AttendanceRecordRow): AttendanceRecord {
   return {
@@ -237,5 +238,5 @@ export class PostgresAttendanceRecordRepository implements IAttendanceRecordRepo
   }
 }
 
-const APPROVAL_STATUS_DB: Record<string, number> = { pending: 1, approved: 2, rejected: 3 };
-const WORK_STATUS_DB: Record<string, number> = { normal: 1, late: 2, early: 3, late_early: 4, forgot: 5, absent: 6, leave: 7 };
+const APPROVAL_STATUS_DB: Record<string, number> = { pending: APPROVAL_STATUS_PENDING, approved: APPROVAL_STATUS_APPROVED, rejected: APPROVAL_STATUS_REJECTED };
+const WORK_STATUS_DB: Record<string, number> = { normal: WORK_STATUS_NORMAL, late: WORK_STATUS_LATE, early: WORK_STATUS_EARLY, late_early: WORK_STATUS_LATE_EARLY, forgot_in: WORK_STATUS_FORGOT_IN, forgot_out: WORK_STATUS_FORGOT_OUT, absent: WORK_STATUS_ABSENT, leave: WORK_STATUS_LEAVE };

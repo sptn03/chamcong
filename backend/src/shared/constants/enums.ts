@@ -66,9 +66,10 @@ export const WORK_STATUS_NORMAL = 1; // Bình thường
 export const WORK_STATUS_LATE = 2; // Trễ
 export const WORK_STATUS_EARLY = 3; // Sớm
 export const WORK_STATUS_LATE_EARLY = 4; // Trễ và Sớm
-export const WORK_STATUS_FORGOT = 5; // Quên chấm công
 export const WORK_STATUS_ABSENT = 6; // Vắng
 export const WORK_STATUS_LEAVE = 7; // Phép
+export const WORK_STATUS_FORGOT_IN = 8; // Quên check-in
+export const WORK_STATUS_FORGOT_OUT = 9; // Quên check-out
 
 // Kiểu phép nghỉ
 export const LEAVE_TYPE_ANNUAL = 1; // Phép năm

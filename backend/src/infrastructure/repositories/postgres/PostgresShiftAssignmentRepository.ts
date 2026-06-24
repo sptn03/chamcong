@@ -23,8 +23,8 @@ interface ShiftAssignmentRow {
   updated_at: Date;
 }
 
-const SCOPE_MAP: Record<number, string> = { 1: 'company', 2: 'branch', 3: 'department', 4: 'employee' };
-const SCOPE_DB: Record<string, number> = { company: 1, branch: 2, department: 3, employee: 4 };
+const SCOPE_MAP: Record<number, string> = { [SHIFT_ASSIGNMENT_SCOPE_COMPANY]: 'company', [SHIFT_ASSIGNMENT_SCOPE_BRANCH]: 'branch', [SHIFT_ASSIGNMENT_SCOPE_DEPARTMENT]: 'department', [SHIFT_ASSIGNMENT_SCOPE_EMPLOYEE]: 'employee' };
+const SCOPE_DB: Record<string, number> = { company: SHIFT_ASSIGNMENT_SCOPE_COMPANY, branch: SHIFT_ASSIGNMENT_SCOPE_BRANCH, department: SHIFT_ASSIGNMENT_SCOPE_DEPARTMENT, employee: SHIFT_ASSIGNMENT_SCOPE_EMPLOYEE };
 
 function rowToEntity(row: ShiftAssignmentRow): ShiftAssignment {
   return {

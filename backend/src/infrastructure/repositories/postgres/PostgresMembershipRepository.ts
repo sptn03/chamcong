@@ -2,6 +2,7 @@ import { Pool, QueryResult } from 'pg';
 import { IMembershipRepository } from '../../../modules/employee/domain/repositories';
 import { CompanyMembership, CreateMembershipInput } from '../../../modules/employee/domain/entities';
 import { buildUpdateSet } from '../../../shared/utils/db';
+import { MEMBERSHIP_ROLE_ADMIN, MEMBERSHIP_ROLE_EMPLOYEE } from '../../../shared/constants';
 
 interface MembershipRow {
   id: number;
@@ -15,7 +16,7 @@ interface MembershipRow {
   updated_at: Date;
 }
 
-const MEMBERSHIP_ROLE_MAP: Record<number, string> = { 1: 'admin', 2: 'employee' };
+const MEMBERSHIP_ROLE_MAP: Record<number, string> = { [MEMBERSHIP_ROLE_ADMIN]: 'admin', [MEMBERSHIP_ROLE_EMPLOYEE]: 'employee' };
 
 function rowToEntity(row: MembershipRow): CompanyMembership {
   return {
@@ -31,10 +32,10 @@ function rowToEntity(row: MembershipRow): CompanyMembership {
   };
 }
 
-const ROLE_DB: Record<string, number> = { admin: 1, employee: 2 };
+const ROLE_DB: Record<string, number> = { admin: MEMBERSHIP_ROLE_ADMIN, employee: MEMBERSHIP_ROLE_EMPLOYEE };
 
 function roleToDb(role: string): number {
-  return ROLE_DB[role] ?? 2;
+  return ROLE_DB[role] ?? MEMBERSHIP_ROLE_EMPLOYEE;
 }
 
 export class PostgresMembershipRepository implements IMembershipRepository {

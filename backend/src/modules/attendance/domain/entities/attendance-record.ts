@@ -1,6 +1,6 @@
 export type AttendanceSource = 'online' | 'offline' | 'admin_edit';
 export type ApprovalStatus = 'pending' | 'approved' | 'rejected';
-export type WorkStatus = 'normal' | 'late' | 'early' | 'late_early' | 'forgot' | 'absent' | 'leave';
+export type WorkStatus = 'normal' | 'late' | 'early' | 'late_early' | 'forgot_in' | 'forgot_out' | 'absent' | 'leave';
 
 export interface AttendanceRecord {
   id: number;

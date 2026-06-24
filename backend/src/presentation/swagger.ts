@@ -545,7 +545,7 @@ const swaggerDefinition: swaggerJsdoc.Options['definition'] = {
           id: { type: 'integer', example: 1 },
           checkinAt: { type: 'string', format: 'date-time' },
           checkoutAt: { type: 'string', format: 'date-time' },
-          workStatus: { type: 'string', enum: ['normal', 'late', 'early', 'late_early', 'forgot', 'absent'] },
+          workStatus: { type: 'string', enum: ['normal', 'late', 'early', 'late_early', 'forgot_in', 'forgot_out', 'absent'] },
           lateMin: { type: 'integer' },
           earlyMin: { type: 'integer' },
           workCredit: { type: 'number' },

@@ -1,7 +1,7 @@
 import { Pool, QueryResult } from 'pg';
 import { IEmployeeRepository } from '../../../modules/employee/domain/repositories';
 import { Employee, CreateEmployeeInput, UpdateEmployeeInput } from '../../../modules/employee/domain/entities';
-import { EMPLOYEE_STATUS_ACTIVE } from '../../../shared/constants';
+import { EMPLOYEE_STATUS_ACTIVE, EMPLOYEE_STATUS_LOCKED } from '../../../shared/constants';
 import { buildUpdateSet } from '../../../shared/utils/db';
 
 interface EmployeeRow {
@@ -23,7 +23,7 @@ interface EmployeeRow {
   email?: string;
 }
 
-const EMPLOYEE_STATUS_MAP: Record<number, string> = { 1: 'active', 2: 'locked' };
+const EMPLOYEE_STATUS_MAP: Record<number, string> = { [EMPLOYEE_STATUS_ACTIVE]: 'active', [EMPLOYEE_STATUS_LOCKED]: 'locked' };
 
 function rowToEntity(row: EmployeeRow): Employee {
   return {
@@ -48,7 +48,7 @@ function rowToEntity(row: EmployeeRow): Employee {
 
 function statusToDb(status: string | undefined): number | undefined {
   if (status === undefined) return undefined;
-  return status === 'active' ? EMPLOYEE_STATUS_ACTIVE : 2;
+  return status === 'active' ? EMPLOYEE_STATUS_ACTIVE : EMPLOYEE_STATUS_LOCKED;
 }
 
 export class PostgresEmployeeRepository implements IEmployeeRepository {

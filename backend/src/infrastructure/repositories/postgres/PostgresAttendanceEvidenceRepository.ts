@@ -1,6 +1,7 @@
 import { Pool, QueryResult } from 'pg';
 import { IAttendanceEvidenceRepository } from '../../../modules/attendance/domain/repositories';
 import { AttendanceEvidence, CreateEvidenceInput } from '../../../modules/attendance/domain/entities';
+import { PUNCH_TYPE_IN, PUNCH_TYPE_OUT } from '../../../shared/constants';
 
 interface EvidenceRow {
   id: number;
@@ -26,8 +27,8 @@ interface EvidenceRow {
   created_at: Date;
 }
 
-const PUNCH_TYPE_MAP: Record<number, string> = { 1: 'in', 2: 'out' };
-const PUNCH_TYPE_DB: Record<string, number> = { in: 1, out: 2 };
+const PUNCH_TYPE_MAP: Record<number, string> = { [PUNCH_TYPE_IN]: 'in', [PUNCH_TYPE_OUT]: 'out' };
+const PUNCH_TYPE_DB: Record<string, number> = { in: PUNCH_TYPE_IN, out: PUNCH_TYPE_OUT };
 
 function rowToEntity(row: EvidenceRow): AttendanceEvidence {
   return {

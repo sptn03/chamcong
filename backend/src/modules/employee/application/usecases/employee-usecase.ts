@@ -3,6 +3,7 @@ import { IUserRepository } from '../../../auth/domain/repositories';
 import { CreateEmployeeInput, UpdateEmployeeInput } from '../../domain/entities';
 import { EmployeeDto, employeeToDto, CreateEmployeeDto, UpdateEmployeeDto } from '../dto';
 import { ValidationError, NotFoundError } from '../../../../shared/errors';
+import { MEMBERSHIP_ROLE_ADMIN } from '../../../../shared/constants';
 
 export class EmployeeUsecase {
   constructor(
@@ -79,7 +80,7 @@ export class EmployeeUsecase {
     if (existingMem) {
       await this.membershipRepo.update(existingMem.id, {
         employeeId: entity.id,
-        role: input.role ? (input.role === 1 ? 'admin' : 'employee') : 'employee',
+        role: input.role ? (input.role === MEMBERSHIP_ROLE_ADMIN ? 'admin' : 'employee') : 'employee',
         activeDepartmentId: input.departmentId,
       });
     } else {
@@ -87,7 +88,7 @@ export class EmployeeUsecase {
         userId,
         companyId: input.companyId,
         employeeId: entity.id,
-        role: input.role ? (input.role === 1 ? 'admin' : 'employee') : 'employee',
+        role: input.role ? (input.role === MEMBERSHIP_ROLE_ADMIN ? 'admin' : 'employee') : 'employee',
         activeDepartmentId: input.departmentId,
       });
     }
@@ -156,7 +157,7 @@ export class EmployeeUsecase {
       const existingMem = await this.membershipRepo.findActive(existing.userId, existing.companyId);
       if (existingMem) {
         await this.membershipRepo.update(existingMem.id, {
-          role: input.role ? (input.role === 1 ? 'admin' : 'employee') : undefined,
+          role: input.role ? (input.role === MEMBERSHIP_ROLE_ADMIN ? 'admin' : 'employee') : undefined,
           activeDepartmentId: input.departmentId,
         });
       }

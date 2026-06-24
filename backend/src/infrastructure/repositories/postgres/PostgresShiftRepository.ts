@@ -2,6 +2,12 @@ import { Pool, QueryResult } from 'pg';
 import { IShiftRepository } from '../../../modules/shift/domain/repositories';
 import { Shift, CreateShiftInput } from '../../../modules/shift/domain/entities';
 import { buildUpdateSet } from '../../../shared/utils/db';
+import {
+  ATTENDANCE_METHOD_GPS,
+  ATTENDANCE_METHOD_WIFI,
+  ATTENDANCE_METHOD_WIFI_OR_GPS,
+  ATTENDANCE_METHOD_GPS_WIFI,
+} from '../../../shared/constants';
 
 interface ShiftRow {
   id: number;
@@ -23,8 +29,8 @@ interface ShiftRow {
   updated_at: Date;
 }
 
-const ATTENDANCE_METHOD_MAP: Record<number, string> = { 1: 'gps', 2: 'wifi', 3: 'gps_or_wifi', 4: 'gps_wifi' };
-const ATTENDANCE_METHOD_DB: Record<string, number> = { gps: 1, wifi: 2, gps_or_wifi: 3, gps_wifi: 4 };
+const ATTENDANCE_METHOD_MAP: Record<number, string> = { [ATTENDANCE_METHOD_GPS]: 'gps', [ATTENDANCE_METHOD_WIFI]: 'wifi', [ATTENDANCE_METHOD_WIFI_OR_GPS]: 'gps_or_wifi', [ATTENDANCE_METHOD_GPS_WIFI]: 'gps_wifi' };
+const ATTENDANCE_METHOD_DB: Record<string, number> = { gps: ATTENDANCE_METHOD_GPS, wifi: ATTENDANCE_METHOD_WIFI, gps_or_wifi: ATTENDANCE_METHOD_WIFI_OR_GPS, gps_wifi: ATTENDANCE_METHOD_GPS_WIFI };
 
 function rowToEntity(row: ShiftRow): Shift {
   return {
