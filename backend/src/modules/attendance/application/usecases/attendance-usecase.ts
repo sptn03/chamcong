@@ -22,6 +22,24 @@ function normalizeBssid(bssid: string | null | undefined): string {
   return bssid.split(':').map(o => o.toUpperCase().padStart(2, '0')).join(':');
 }
 
+/** Chuyển time string (HH:MM, HH:MM:SS) */
+function parseTimeToMinutes(time: any): number {
+  if (time == null) return 0;
+  if (typeof time === 'object') {
+    const h = time.hours ?? 0;
+    const m = time.minutes ?? 0;
+    return Number(h) * 60 + Number(m);
+  }
+  const str = String(time);
+  const parts = str.split(':');
+  if (parts.length >= 2) {
+    const h = parseInt(parts[0], 10);
+    const m = parseInt(parts[1], 10);
+    if (!isNaN(h) && !isNaN(m)) return h * 60 + m;
+  }
+  return 0;
+}
+
 const WEEKDAY_BITS = [
   64, // Sunday
   1,  // Monday
@@ -730,6 +748,15 @@ export class AttendanceUsecase {
           });
         }
       }
+
+      // Sắp xếp ca theo giờ bắt đầu (sáng → chiều)
+      shiftsForDay.sort((a, b) => {
+        const aShift = shiftDetailMap[a.shiftId];
+        const bShift = shiftDetailMap[b.shiftId];
+        const aMin = parseTimeToMinutes(aShift?.startTime);
+        const bMin = parseTimeToMinutes(bShift?.startTime);
+        return aMin - bMin;
+      });
 
       result.push({ date: dateStr, dayOfWeek, shifts: shiftsForDay, totalShifts: shiftsForDay.length });
       current.add(1, 'day');
